@@ -1,0 +1,60 @@
+V6 local provisioning verification; unit/fixture tests, not model/browser/laptop acceptance.
+Commands: bash -n setup.sh; bash setup.sh --local --plan; bash setup.sh --plan; python3 -m unittest discover -s tests -p test_*.py -v
+
+LOCAL PC: Python 3.10+, Bash, Linux Docker engine + Compose v2 required; no host installs, public address lookup or public ports. localhost HTTPS only; persistent unique project/image/volumes; own provider/browser login; local CA trust required.
+1 Docker/Host prüfen; optionale bestätigte Installation
+2 Lokal oder Domain wählen
+3 Passwort verdeckt setzen und Images pinnen
+4 Container, Browser und Skill-Bundle bauen/starten
+5 Modell-Login im offiziellen Hermes-Wizard
+6 Tools/Shared-Browser prüfen
+7 Geschützte URL zeigen, manuell LinkedIn anmelden
+test_api_exactly_one_get_or_post_scoped_tls (test_local.LocalTests.test_api_exactly_one_get_or_post_scoped_tls) ... ok
+test_api_no_tty_rejects_password_input (test_local.LocalTests.test_api_no_tty_rejects_password_input) ... ok
+test_api_nonlocal_and_secret_urls_refused (test_local.LocalTests.test_api_nonlocal_and_secret_urls_refused) ... ok
+test_api_real_loopback_tls_transport_synthetic_only (test_local.LocalTests.test_api_real_loopback_tls_transport_synthetic_only) ... ok
+test_api_redirects_not_followed (test_local.LocalTests.test_api_redirects_not_followed) ... ok
+test_arch_matrix_accepts_both_native_platforms (test_local.LocalTests.test_arch_matrix_accepts_both_native_platforms) ... ok
+test_arch_mismatch_explicit (test_local.LocalTests.test_arch_mismatch_explicit) ... ok
+test_configure_no_tty_refuses_unmasked_fallback (test_local.LocalTests.test_configure_no_tty_refuses_unmasked_fallback) ... ok
+test_digest_pin_keeps_index_not_first_inspected_alias (test_local.LocalTests.test_digest_pin_keeps_index_not_first_inspected_alias) ... ok
+test_local_configuration_never_acme (test_local.LocalTests.test_local_configuration_never_acme) ... ok
+test_local_configure_stores_loopback_isolation_and_no_password (test_local.LocalTests.test_local_configure_stores_loopback_isolation_and_no_password) ... ok
+test_local_existing_public_config_refused (test_local.LocalTests.test_local_existing_public_config_refused) ... ok
+test_local_fresh_wizard_on_macos_no_public_prompt (test_local.LocalTests.test_local_fresh_wizard_on_macos_no_public_prompt) ... ok
+test_local_missing_docker_installs_nothing (test_local.LocalTests.test_local_missing_docker_installs_nothing) ... ok
+test_orphan_volume_not_adopted (test_local.LocalTests.test_orphan_volume_not_adopted) ... ok
+test_plan_local_no_reads_changes_network (test_local.LocalTests.test_plan_local_no_reads_changes_network) ... ok
+test_tls_readiness_uses_scoped_ca (test_local.LocalTests.test_tls_readiness_uses_scoped_ca) ... ok
+test_unique_generated_names (test_local.LocalTests.test_unique_generated_names) ... ok
+test_windows_container_engine_refused (test_local.LocalTests.test_windows_container_engine_refused) ... ok
+test_busy_standard_ports_use_custom_internal_tls (test_network_defaults.NetworkDefaultTests.test_busy_standard_ports_use_custom_internal_tls) ... ok
+test_custom_port_caddy_uses_internal_ca (test_network_defaults.NetworkDefaultTests.test_custom_port_caddy_uses_internal_ca) ... ok
+test_custom_port_preserved_in_url (test_network_defaults.NetworkDefaultTests.test_custom_port_preserved_in_url) ... ok
+test_declining_self_signed_does_not_deploy (test_network_defaults.NetworkDefaultTests.test_declining_self_signed_does_not_deploy) ... ok
+test_fallback_port_when_preferred_busy (test_network_defaults.NetworkDefaultTests.test_fallback_port_when_preferred_busy) ... ok
+test_matching_public_hostname_is_default (test_network_defaults.NetworkDefaultTests.test_matching_public_hostname_is_default) ... ok
+test_mismatched_hostname_falls_back_to_public_ip (test_network_defaults.NetworkDefaultTests.test_mismatched_hostname_falls_back_to_public_ip) ... ok
+test_occupied_ipv4_port_not_proposed (test_network_defaults.NetworkDefaultTests.test_occupied_ipv4_port_not_proposed) ... ok
+test_port_443_and_auto_acme_when_standard_ports_free (test_network_defaults.NetworkDefaultTests.test_port_443_and_auto_acme_when_standard_ports_free) ... ok
+test_private_hostname_never_becomes_public_default (test_network_defaults.NetworkDefaultTests.test_private_hostname_never_becomes_public_default) ... ok
+test_public_ip_never_claims_acme_support (test_network_defaults.NetworkDefaultTests.test_public_ip_never_claims_acme_support) ... ok
+test_validation_supports_public_ip_and_rejects_urls (test_network_defaults.NetworkDefaultTests.test_validation_supports_public_ip_and_rejects_urls) ... ok
+test_wizard_reprompts_instead_of_stopping_service (test_network_defaults.NetworkDefaultTests.test_wizard_reprompts_instead_of_stopping_service) ... ok
+test_wizard_uses_detected_domain_and_port_defaults (test_network_defaults.NetworkDefaultTests.test_wizard_uses_detected_domain_and_port_defaults) ... ok
+test_health_finishes_auth_and_init_without_pixel_request (test_rfb_probe.RfbTests.test_health_finishes_auth_and_init_without_pixel_request) ... ok
+test_hung_transport_is_not_healthy (test_rfb_probe.RfbTests.test_hung_transport_is_not_healthy) ... ok
+test_rfb_33_frame (test_rfb_probe.RfbTests.test_rfb_33_frame) ... ok
+test_rfb_38_frame (test_rfb_probe.RfbTests.test_rfb_38_frame) ... ok
+test_existing_docker_is_not_replaced (test_wizard.WizardTests.test_existing_docker_is_not_replaced) ... ok
+test_no_tty_rejects_secret_input (test_wizard.WizardTests.test_no_tty_rejects_secret_input) ... ok
+test_plan_makes_no_changes (test_wizard.WizardTests.test_plan_makes_no_changes) ... ok
+test_public_tls_uses_default_validation (test_wizard.WizardTests.test_public_tls_uses_default_validation) ... ok
+test_setup_resume_wires_tools_without_fake_model_claim (test_wizard.WizardTests.test_setup_resume_wires_tools_without_fake_model_claim) ... ok
+test_taken_port_aborts (test_wizard.WizardTests.test_taken_port_aborts) ... ok
+test_unprotected_url_aborts (test_wizard.WizardTests.test_unprotected_url_aborts) ... ok
+
+----------------------------------------------------------------------
+Ran 44 tests in 1.094s
+
+OK

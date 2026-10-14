@@ -1,0 +1,8 @@
+{
+  "keywords": ["kanzlei"],
+  "titles": ["Inhaber", "Partner", "Geschäftsführer"],
+  "source": "web",
+  "limit": 3,
+  "exclude_previous": true,
+  "budget": {"seconds": 180, "max_turns": 12}
+}

@@ -1,0 +1,9 @@
+{
+  "source": "search",
+  "keywords": ["Rechtsanwalt"],
+  "titles": ["Partner", "Inhaber", "Geschäftsführer"],
+  "locations": ["München", "Berlin", "Hamburg", "Frankfurt", "Köln", "Düsseldorf", "Stuttgart"],
+  "limit": 100,
+  "exclude_previous": true,
+  "budget": {"seconds": 1800, "max_cost_usd": 1.0}
+}

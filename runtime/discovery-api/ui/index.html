@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hermes Leads</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%2318181b'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #fafaf9; --surface: #f2f2f0; --surface-2: #e9e9e6; --text: #18181b; --muted: #71717a; --faint: #a1a1aa;
+  --line: rgba(24, 24, 27, .07); --accent: #18181b; --on-accent: #fafaf9; --focus: rgba(24, 24, 27, .18);
+  --ok: #166534; --ok-bg: rgba(22, 101, 52, .08); --info: #1e40af; --info-bg: rgba(30, 64, 175, .07);
+  --warn: #92400e; --warn-bg: rgba(146, 64, 14, .08); --bad: #991b1b; --bad-bg: rgba(153, 27, 27, .07);
+  --radius: 10px; --gap: 24px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e0e10; --surface: #17171a; --surface-2: #202024; --text: #ececee; --muted: #9b9ba3; --faint: #64646c;
+    --line: rgba(236, 236, 238, .07); --accent: #ececee; --on-accent: #0e0e10; --focus: rgba(236, 236, 238, .2);
+    --ok: #86efac; --ok-bg: rgba(134, 239, 172, .08); --info: #93c5fd; --info-bg: rgba(147, 197, 253, .08);
+    --warn: #fcd34d; --warn-bg: rgba(252, 211, 77, .08); --bad: #fca5a5; --bad-bg: rgba(252, 165, 165, .08);
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+button, input, textarea, select { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.small { font-size: 12.5px; }
+
+/* header */
+header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); }
+.bar { max-width: 1180px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 28px; }
+.brand { font-weight: 600; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.brand i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); display: inline-block; }
+.brand i.ok { background: #22c55e; } .brand i.bad { background: #ef4444; }
+nav { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
+nav button { background: none; border: 0; padding: 6px 12px; border-radius: 8px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+nav button:hover { color: var(--text); }
+nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
+.desk { color: var(--muted); white-space: nowrap; }
+
+main { max-width: 1180px; margin: 0 auto; padding: 12px 24px 80px; }
+section[hidden] { display: none; }
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 18px 0 4px; }
+h2 { font-size: 13px; font-weight: 500; color: var(--muted); margin: 32px 0 10px; text-transform: none; }
+.lead-in { color: var(--muted); margin: 0 0 20px; }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 20px; }
+.tile { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; }
+.tile b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.tile span { color: var(--muted); font-size: 12.5px; }
+
+/* panels & forms */
+.panel { background: var(--surface); border-radius: var(--radius); padding: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.wide { grid-column: 1 / -1; }
+label { font-size: 12.5px; color: var(--muted); }
+input[type=text], input[type=url], input[type=number], input[type=search], textarea, select {
+  width: 100%; background: var(--bg); border: 0; border-radius: 8px; padding: 9px 11px; outline: none;
+  box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow .12s;
+}
+textarea { resize: vertical; min-height: 84px; line-height: 1.45; }
+input:focus, textarea:focus, select:focus { box-shadow: inset 0 0 0 1px var(--faint), 0 0 0 3px var(--focus); }
+.check { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.btn { border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: var(--surface-2); color: var(--text); white-space: nowrap; }
+.btn:hover { filter: brightness(.97); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.ghost { background: transparent; color: var(--muted); padding: 6px 10px; }
+.btn.ghost:hover { color: var(--text); background: var(--surface); }
+.btn.danger { background: transparent; color: var(--bad); }
+.btn:disabled { opacity: .45; cursor: default; }
+.err { color: var(--bad); font-size: 13px; }
+
+/* pills */
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.pill.verified, .pill.succeeded, .pill.ready, .pill.connected { background: var(--ok-bg); color: var(--ok); }
+.pill.plausible, .pill.running, .pill.researching, .pill.queued { background: var(--info-bg); color: var(--info); }
+.pill.review, .pill.partial, .pill.awaiting_connection, .pill.expired, .pill.pending { background: var(--warn-bg); color: var(--warn); }
+.pill.failed, .pill.timed_out, .pill.blocked, .pill.login_required, .pill.do_not_contact, .pill.excluded { background: var(--bad-bg); color: var(--bad); }
+.pill.in_outreach, .pill.customer { background: var(--info-bg); color: var(--info); }
+.pill.contacted { background: var(--ok-bg); color: var(--ok); }
+.note { font-size: 12px; color: var(--warn); }
+
+/* tables */
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--muted); padding: 8px 10px; }
+td { padding: 11px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--surface); }
+tr.open td { background: var(--surface); }
+td .sub { color: var(--muted); font-size: 12.5px; }
+.empty { color: var(--muted); padding: 28px 10px; }
+.scroll { overflow-x: auto; }
+
+/* toolbar */
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 4px 0 14px; }
+.toolbar input[type=search] { max-width: 320px; }
+.seg { display: inline-flex; background: var(--surface); border-radius: 8px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 5px 11px; border-radius: 6px; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--bg); color: var(--text); }
+
+/* evidence */
+.evidence { display: grid; gap: 10px; padding: 4px 0 6px; }
+.quote { border-left: 2px solid var(--surface-2); padding: 2px 0 2px 12px; white-space: pre-wrap; }
+.quote .src { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+/* outreach split */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: var(--gap); align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+.list { display: grid; gap: 2px; }
+.item { padding: 12px 12px; border-radius: 8px; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+.item:hover, .item.open { background: var(--surface); }
+.item .sub { color: var(--muted); font-size: 12.5px; }
+.detail { position: sticky; top: 76px; }
+.block { margin-bottom: 22px; }
+.block h3 { font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+.text { white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 12px 14px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 13px; margin: 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; }
+details summary { cursor: pointer; color: var(--muted); list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: '+ '; } details[open] summary::before { content: '– '; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--accent); color: var(--on-accent);
+  padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+@media (max-width: 640px) { .bar { gap: 14px; padding: 12px 16px; } main { padding: 8px 16px 60px; } .desk { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand"><i id="dot"></i>Hermes Leads</div>
+    <nav id="nav">
+      <button data-tab="overview">Übersicht</button>
+      <button data-tab="search">Suche</button>
+      <button data-tab="leads">Leads</button>
+      <button data-tab="outreach">Outreach</button>
+      <button data-tab="registry">Register</button>
+    </nav>
+    <a class="desk small" href="/vnc.html?autoconnect=1&resize=remote" target="_blank" rel="noopener">Desktop ↗</a>
+  </div>
+</header>
+
+<main>
+  <section id="overview">
+    <h1>Übersicht</h1>
+    <p class="lead-in">Leads finden, prüfen, vernetzen. Versendet wird nichts automatisch.</p>
+    <div class="tiles" id="tiles"></div>
+    <h2>Einrichtung</h2>
+    <div class="panel"><dl class="kv" id="setup"></dl></div>
+    <h2>Letzte Suchen</h2>
+    <div class="scroll"><table><tbody id="recent"></tbody></table></div>
+  </section>
+
+  <section id="search" hidden>
+    <h1>Suche</h1>
+    <p class="lead-in">LinkedIn-Profile über Google finden und auf der Firmen-Website bestätigen.</p>
+    <form class="panel" id="searchForm" autocomplete="off">
+      <div class="grid">
+        <div class="field"><label for="sKeywords">Branche / Stichwörter</label><input id="sKeywords" type="text" placeholder="z. B. Steuerberater, Softwareentwicklung" required></div>
+        <div class="field"><label for="sTitles">Rollen</label><input id="sTitles" type="text" placeholder="leer = Entscheider (Inhaber, GF, Partner, CEO …)"></div>
+        <div class="field"><label for="sLocations">Orte</label><input id="sLocations" type="text" placeholder="München, Berlin"></div>
+        <div class="field"><label for="sLimit">Anzahl</label><input id="sLimit" type="number" min="1" max="100" value="15"></div>
+        <div class="field"><label for="sCost">Kostendeckel (USD)</label><input id="sCost" type="number" min="0.01" max="10" step="0.05" value="0.5"></div>
+        <div class="field"><label for="sPerCompany">max. pro Firma (leer = unbegrenzt)</label><input id="sPerCompany" type="number" min="1" max="100" value="1"></div>
+        <div class="field"><label for="sMin">Mindeststufe</label><select id="sMin">
+          <option value="verified">verifiziert – Rolle auf der Firmen-Website</option>
+          <option value="plausible" selected>plausibel – auch Ein-Personen-Firmen</option>
+          <option value="linkedin">nur LinkedIn – Website schweigt (z. B. Tech, Konzerne)</option></select></div>
+        <div class="field" style="justify-content:flex-end;gap:8px">
+          <label class="check"><input id="sExpand" type="checkbox" checked> Suchbegriffe erweitern (Synonyme, Rollen-Varianten)</label>
+          <label class="check"><input id="sReview" type="checkbox"> auch Leads unter der Mindeststufe zeigen</label></div>
+      </div>
+      <div class="actions"><button class="btn primary" type="submit">Suche starten</button><span class="err" id="sErr"></span></div>
+    </form>
+    <h2>Suchaufträge</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Gestartet</th><th>Kriterien</th><th>Status</th><th class="num">Ergebnis</th><th class="num">Kosten</th></tr></thead>
+      <tbody id="jobs"></tbody>
+    </table></div>
+    <div id="jobDetail"></div>
+  </section>
+
+  <section id="leads" hidden>
+    <h1>Leads</h1>
+    <p class="lead-in">Alle gefundenen Entscheider, ein Eintrag pro Profil. Zeile öffnen für Belege.</p>
+    <div class="toolbar">
+      <input id="lQ" type="search" placeholder="Name, Firma, Rolle …">
+      <div class="seg" id="lTier">
+        <button data-v="" aria-pressed="true">Alle</button><button data-v="verified">verifiziert</button>
+        <button data-v="plausible">plausibel</button><button data-v="linkedin">nur LinkedIn</button><button data-v="review">prüfen</button>
+      </div>
+      <span class="muted small num" id="lCount"></span>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Person</th><th>Firma</th><th>Stufe</th><th>Outreach</th></tr></thead>
+      <tbody id="leadRows"></tbody>
+    </table></div>
+  </section>
+
+  <section id="outreach" hidden>
+    <h1>Outreach</h1>
+    <p class="lead-in">Erst vernetzen, dann recherchieren und schreiben. Notiz und Nachricht sendest du selbst.</p>
+    <details class="panel" id="oNew" style="margin-bottom:20px">
+      <summary>Neuer Kontakt</summary>
+      <form id="oForm" autocomplete="off" style="margin-top:16px">
+        <div class="grid">
+          <div class="field wide"><label for="oLinkedin">LinkedIn-Profil</label><input id="oLinkedin" type="url" placeholder="https://www.linkedin.com/in/…" required></div>
+          <div class="field"><label for="oWebsite">Website</label><input id="oWebsite" type="url" placeholder="https://firma.de"></div>
+          <div class="field"><label for="oCompany">oder Firmenname</label><input id="oCompany" type="text"></div>
+          <div class="field wide"><label for="oTopic">Thema</label><input id="oTopic" type="text" placeholder="KI-Automationen" required></div>
+          <div class="field wide"><label for="oTemplate">Vorlage für die Nachricht</label><textarea id="oTemplate" placeholder="Ton, Aufbau, Angebot, Frage am Ende …"></textarea></div>
+          <div class="field wide"><label for="oNoteTemplate">Vorlage für die Vernetzungsnotiz (optional)</label><textarea id="oNoteTemplate" style="min-height:60px"></textarea></div>
+          <div class="field"><label for="oNoteMax">Notiz max. Zeichen</label><input id="oNoteMax" type="number" min="50" max="300" value="200"></div>
+          <div class="field"><label for="oMsgMax">Nachricht max. Zeichen</label><input id="oMsgMax" type="number" min="200" max="4000" value="1200"></div>
+        </div>
+        <label class="check" style="margin-top:12px"><input id="oSameCompany" type="checkbox"> auch bei gleicher Firma anlegen</label>
+        <div class="actions"><button class="btn primary" type="submit" id="oSubmit">Kontakt anlegen</button>
+          <span class="muted small">Thema und Vorlagen werden in diesem Browser gemerkt.</span><span class="err" id="oErr"></span></div>
+      </form>
+    </details>
+    <div class="toolbar"><div class="seg" id="oFilter"></div></div>
+    <div class="split">
+      <div class="list" id="oList"></div>
+      <div class="detail" id="oDetail"></div>
+    </div>
+  </section>
+  <section id="registry" hidden>
+    <h1>Register</h1>
+    <p class="lead-in">Gemeinsame Sperr- und Nachschlageliste für Suche, Outreach und andere Agenten (API: <span class="num">/api/v1/registry</span>).
+      Bekannte Personen werden nie erneut geliefert; Firmen mit aktivem Kontakt, Kunden und Ausschlüsse werden übersprungen.</p>
+    <form class="panel" id="rForm" autocomplete="off">
+      <div class="grid">
+        <div class="field"><label for="rLinkedin">LinkedIn-Profil</label><input id="rLinkedin" type="url" placeholder="https://www.linkedin.com/in/…"></div>
+        <div class="field"><label for="rWebsite">Firmen-Website</label><input id="rWebsite" type="url" placeholder="https://firma.de"></div>
+        <div class="field"><label for="rCompany">Firmenname</label><input id="rCompany" type="text"></div>
+        <div class="field"><label for="rStatus">Status</label><select id="rStatus">
+          <option value="contacted">kontaktiert</option><option value="in_outreach">im Outreach</option>
+          <option value="do_not_contact">nicht kontaktieren</option><option value="customer">Kunde</option>
+          <option value="excluded" selected>ausgeschlossen</option></select></div>
+        <div class="field wide"><label for="rNote">Notiz</label><input id="rNote" type="text" maxlength="160"></div>
+      </div>
+      <div class="actions"><button class="btn primary" type="submit">Eintragen</button>
+        <button class="btn" type="button" id="rCheck">Nur prüfen</button><span class="small" id="rMsg"></span></div>
+    </form>
+    <div class="toolbar" style="margin-top:22px">
+      <input id="rQ" type="search" placeholder="Profil, Firma, Domain, Notiz …">
+      <div class="seg" id="rFilter"></div>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Eintrag</th><th>Status</th><th>Quelle</th><th class="num">Aktualisiert</th><th></th></tr></thead>
+      <tbody id="rRows"></tbody>
+    </table></div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const fmt = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+const when = (t) => (t ? fmt.format(new Date(t * 1000)) : '–');
+const money = (v) => (v == null ? '–' : '$' + Number(v).toFixed(v < 0.1 ? 3 : 2));
+const list = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
+const safeUrl = (u) => (typeof u === 'string' && /^https:\/\/[^\s]+$/i.test(u) ? u : null);
+const LABEL = {
+  verified: 'verifiziert', plausible: 'plausibel', linkedin: 'nur LinkedIn', review: 'prüfen', queued: 'wartet', running: 'läuft', succeeded: 'fertig',
+  partial: 'teilweise', blocked: 'blockiert', failed: 'Fehler', timed_out: 'Zeit abgelaufen', awaiting_connection: 'wartet auf Annahme',
+  connected: 'angenommen', researching: 'Recherche', ready: 'bereit', sent: 'gesendet', expired: 'abgelaufen',
+  pending: 'ausstehend', not_connected: 'nicht vernetzt', unknown: 'unbekannt', login_required: 'Login nötig',
+  delivered: 'geliefert', in_outreach: 'im Outreach', contacted: 'kontaktiert', do_not_contact: 'nicht kontaktieren',
+  customer: 'Kunde', excluded: 'ausgeschlossen',
+};
+
+// DOM builder: text is always set via textContent (web data is untrusted), links only for https URLs.
+function el(tag, props, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k === 'href') { const u = safeUrl(v) || (v.startsWith('/') ? v : null); if (u) n.href = u; }
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) n.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return n;
+}
+const pill = (v) => el('span', { class: 'pill ' + v, text: LABEL[v] || v });
+const link = (href, text) => (safeUrl(href) ? el('a', { href, target: '_blank', rel: 'noopener noreferrer', text: text || href }) : el('span', { class: 'faint', text: text || '–' }));
+const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  if (res.status === 204) return null;
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const d = body && body.detail;
+    const e = new Error(typeof d === 'string' ? d : (d && d.error) || (Array.isArray(d) ? 'Eingabe ungültig' : 'Fehler ' + res.status));
+    e.status = res.status; e.detail = d; throw e;
+  }
+  return body;
+}
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+async function copy(text) { try { await navigator.clipboard.writeText(text); toast('Kopiert'); } catch { toast('Kopieren nicht möglich'); } }
+const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+/* ------------------------------------------------------------------ navigation */
+const tabs = ['overview', 'search', 'leads', 'outreach', 'registry'];
+function show(tab) {
+  if (!tabs.includes(tab)) tab = 'overview';
+  for (const t of tabs) $(t).hidden = t !== tab;
+  for (const b of $('nav').children) {
+    if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  }
+  store.set('tab', tab);
+  if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
+  ({ overview: loadOverview, search: loadJobs, leads: loadLeads, outreach: loadOutreach, registry: loadRegistry })[tab]();
+}
+$('nav').addEventListener('click', (e) => e.target.dataset.tab && show(e.target.dataset.tab));
+
+/* ------------------------------------------------------------------ overview */
+async function loadOverview() {
+  try {
+    const s = await api('/api/v1/status');
+    $('dot').className = s.search.configured ? 'ok' : 'bad';
+    const oc = s.outreach.counts;
+    $('tiles').replaceChildren(
+      tile(s.leads_total, 'Leads gesamt'), tile(s.jobs_total, 'Suchaufträge'),
+      tile(oc.ready || 0, 'Nachrichten bereit'), tile((oc.awaiting_connection || 0), 'warten auf Annahme'),
+      tile(`${s.outreach.checks_last_24h}/${s.outreach.daily_cap}`, 'Profilprüfungen 24 h'),
+      tile(Object.values(s.registry || {}).reduce((a, b) => a + b, 0), 'Register-Einträge'));
+    const yes = (b) => el('span', { class: b ? '' : 'err', text: b ? 'eingerichtet' : 'fehlt' });
+    $('setup').replaceChildren(
+      el('dt', { text: 'Suche' }), el('dd', {}, yes(s.search.configured)),
+      el('dt', { text: 'treg-Token' }), el('dd', {}, yes(s.search.treg)),
+      el('dt', { text: 'OpenRouter' }), el('dd', {}, yes(s.search.openrouter)),
+      el('dt', { text: 'Modell' }), el('dd', { text: s.search.model }),
+      el('dt', { text: 'Annahme-Prüfung' }), el('dd', { text: s.outreach.background_enabled ? (s.outreach.paused_until ? 'pausiert bis ' + when(s.outreach.paused_until) + ' – bitte im Desktop bei LinkedIn einloggen' : 'aktiv, täglich') : 'aus' }),
+      el('dt', { text: 'Warteschlange' }), el('dd', { class: 'num', text: `${s.queue.running} läuft · ${s.queue.queued} wartet` }));
+    const jobs = await api('/api/v1/discoveries?limit=5');
+    $('recent').replaceChildren(...(jobs.length ? jobs.map(jobRow) : [el('tr', {}, el('td', { class: 'empty', text: 'Noch keine Suche.' }))]));
+  } catch (e) { $('tiles').replaceChildren(el('p', { class: 'err', text: 'Status nicht ladbar: ' + e.message })); }
+}
+const tile = (v, label) => el('div', { class: 'tile' }, el('b', { class: 'num', text: v }), el('span', { text: label }));
+
+/* ------------------------------------------------------------------ search */
+$('searchForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('sErr').textContent = '';
+  const body = { source: 'search', keywords: list($('sKeywords').value), titles: list($('sTitles').value),
+    locations: list($('sLocations').value), limit: +$('sLimit').value || 15, include_review: $('sReview').checked,
+    min_verification: $('sMin').value, expand_terms: $('sExpand').checked,
+    max_per_company: $('sPerCompany').value ? +$('sPerCompany').value : null,
+    budget: { seconds: 1800, max_cost_usd: +$('sCost').value || 0.5 } };
+  if (!body.titles.length) delete body.titles;
+  try { const job = await api('/api/v1/discoveries', { method: 'POST', body: JSON.stringify(body) }); toast('Suche gestartet'); await loadJobs(); openJob(job.id); }
+  catch (err) { $('sErr').textContent = err.status === 429 ? 'Warteschlange voll.' : err.message; }
+});
+function criteriaText(j) {
+  return [j.keywords.join(', '), j.titles.join(', '), j.locations.join(', ')].filter(Boolean).join(' · ') || j.source;
+}
+function jobRow(j) {
+  return el('tr', { onclick: () => { show('search'); openJob(j.id); } },
+    el('td', { class: 'num', text: when(j.created_at) }),
+    el('td', {}, criteriaText(j), el('div', { class: 'sub', text: j.source === 'search' ? 'Suchmaschine' : 'Browser-Agent' })),
+    el('td', {}, pill(j.status), j.error ? el('div', { class: 'sub', text: j.error }) : null),
+    el('td', { class: 'num', text: `${j.requested_count - j.missing_count}/${j.requested_count}` }),  // qualified / requested
+    el('td', { class: 'num', text: money(j.cost_usd) }));
+}
+let jobTimer;
+async function loadJobs() {
+  try {
+    const jobs = await api('/api/v1/discoveries?limit=50');
+    $('jobs').replaceChildren(...(jobs.length ? jobs.map(jobRow) : [el('tr', {}, el('td', { class: 'empty', colspan: 5, text: 'Noch keine Suche.' }))]));
+    clearTimeout(jobTimer);
+    if (jobs.some((j) => j.status === 'queued' || j.status === 'running')) jobTimer = setTimeout(() => !$('search').hidden && loadJobs(), 5000);
+  } catch (e) { $('jobs').replaceChildren(el('tr', {}, el('td', { class: 'err', text: e.message }))); }
+}
+async function openJob(id) {
+  const box = $('jobDetail');
+  try {
+    const j = await api('/api/v1/discoveries/' + encodeURIComponent(id));
+    const m = (j.result && j.result.metadata) || {};
+    const head = el('h2', {}, 'Auftrag vom ' + when(j.created_at) + ' ', pill(j.status));
+    const facts = el('p', { class: 'muted small num', text: [
+      m.verification_counts ? `verifiziert ${m.verification_counts.verified || 0} · plausibel ${m.verification_counts.plausible || 0} · nur LinkedIn ${m.verification_counts.linkedin || 0} · prüfen ${m.verification_counts.review || 0}` : null,
+      m.min_verification ? 'Mindeststufe: ' + (LABEL[m.min_verification] || m.min_verification) : null,
+      (m.expanded_keywords || []).length || (m.expanded_titles || []).length ? 'erweitert um: ' + [...(m.expanded_keywords || []), ...(m.expanded_titles || [])].join(', ') : null,
+      m.cost_usd != null ? money(m.cost_usd) : null, m.elapsed_seconds ? Math.round(m.elapsed_seconds) + ' s' : null,
+      m.stop_reason ? 'Stopp: ' + m.stop_reason : null, j.error ? 'Fehler: ' + j.error : null].filter(Boolean).join(' · ') });
+    const rows = (j.result ? j.result.leads : []).map((l) => leadRow({ ...l, outreach_status: null }));
+    box.replaceChildren(head, facts, el('div', { class: 'scroll' }, el('table', {},
+      el('thead', {}, el('tr', {}, el('th', { text: 'Person' }), el('th', { text: 'Firma' }), el('th', { text: 'Stufe' }), el('th', { text: 'Outreach' }))),
+      el('tbody', {}, rows.length ? rows.flat() : el('tr', {}, el('td', { class: 'empty', colspan: 4, text: j.status === 'running' || j.status === 'queued' ? 'Läuft …' : 'Keine Leads.' }))))));
+    if (j.status === 'running' || j.status === 'queued') setTimeout(() => !$('search').hidden && openJob(id), 5000);
+  } catch (e) { box.replaceChildren(el('p', { class: 'err', text: e.message })); }
+}
+
+/* ------------------------------------------------------------------ leads */
+let tier = '';
+$('lTier').addEventListener('click', (e) => { if (e.target.dataset.v == null) return; tier = e.target.dataset.v;
+  for (const b of $('lTier').children) b.setAttribute('aria-pressed', b === e.target); loadLeads(); });
+let qTimer; $('lQ').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(loadLeads, 250); });
+async function loadLeads() {
+  const p = new URLSearchParams(); if (tier) p.set('verification', tier); if ($('lQ').value.trim()) p.set('q', $('lQ').value.trim());
+  try {
+    const rows = await api('/api/v1/leads?' + p);
+    $('lCount').textContent = rows.length + ' Einträge';
+    $('leadRows').replaceChildren(...(rows.length ? rows.map(leadRow).flat() : [el('tr', {}, el('td', { class: 'empty', colspan: 4, text: 'Keine Leads – starte eine Suche.' }))]));
+  } catch (e) { $('leadRows').replaceChildren(el('tr', {}, el('td', { class: 'err', colspan: 4, text: e.message }))); }
+}
+function companyNote(statuses) {
+  const parts = Object.entries(statuses || {}).filter(([s]) => s !== 'delivered').map(([s, n]) => (LABEL[s] || s) + (n > 1 ? ' ×' + n : ''));
+  return parts.length ? el('div', { class: 'note', text: 'Firma im Register: ' + parts.join(', ') }) : null;
+}
+function leadRow(l) {
+  const ev = el('tr', { hidden: true }, el('td', { colspan: 4 }, el('div', { class: 'evidence' },
+    ...(l.evidence || []).map((e) => el('div', { class: 'quote' }, e.quote,
+      el('span', { class: 'src' }, (e.source === 'firm_website' ? 'Firmen-Website' : e.source === 'search_snippet' ? 'Google-Treffer' : 'Quelle') + ' · belegt: ' + e.supports.join(', ') + ' · ', link(e.url, host(e.url))))),
+    l.verification_reason ? el('div', { class: 'muted small', text: 'Stufe: ' + l.verification_reason }) : null)));
+  const action = l.outreach_id
+    ? el('a', { href: '#outreach', onclick: (e) => { e.stopPropagation(); e.preventDefault(); openOutreachTab(l.outreach_id); } }, pill(l.outreach_status))
+    : el('button', { class: 'btn ghost', type: 'button', onclick: (e) => { e.stopPropagation(); prefillOutreach(l); }, text: 'Outreach' });
+  const row = el('tr', { onclick: () => { ev.hidden = !ev.hidden; row.classList.toggle('open', !ev.hidden); } },
+    el('td', {}, el('div', {}, link(l.linkedin_url, l.name)), el('div', { class: 'sub', text: l.current_role || '' })),
+    el('td', {}, el('div', { text: l.company || '–' }), l.company_website ? el('div', { class: 'sub' }, link(l.company_website, host(l.company_website))) : null,
+      companyNote(l.company_registry)),
+    el('td', {}, l.verification ? pill(l.verification) : el('span', { class: 'faint', text: '–' })),
+    el('td', {}, action));
+  return [row, ev];
+}
+
+/* ------------------------------------------------------------------ outreach */
+const O_FILTERS = [['', 'Alle'], ['awaiting_connection', 'Wartet'], ['researching', 'Recherche'], ['ready', 'Bereit'], ['sent', 'Gesendet'], ['expired', 'Abgelaufen'], ['do_not_contact', 'Gesperrt'], ['failed', 'Fehler']];
+let oFilter = '', oOpen = null, oTimer;
+for (const k of ['oTopic', 'oTemplate', 'oNoteTemplate']) { $(k).value = store.get('outreach.' + k, ''); $(k).addEventListener('change', () => store.set('outreach.' + k, $(k).value)); }
+function prefillOutreach(l) {
+  $('oLinkedin').value = l.linkedin_url || ''; $('oWebsite').value = l.company_website || ''; $('oCompany').value = l.company || '';
+  $('oNew').open = true; show('outreach'); $('oTopic').focus();
+}
+function openOutreachTab(id) { oOpen = id; show('outreach'); }
+$('oForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); $('oErr').textContent = ''; $('oSubmit').disabled = true;
+  const body = { linkedin_url: $('oLinkedin').value.trim(), topic: $('oTopic').value.trim(),
+    note_max_chars: +$('oNoteMax').value || 200, message_max_chars: +$('oMsgMax').value || 1200 };
+  if ($('oWebsite').value.trim()) body.company_website = $('oWebsite').value.trim();
+  if ($('oCompany').value.trim()) body.company_name = $('oCompany').value.trim();
+  if ($('oTemplate').value.trim()) body.template = $('oTemplate').value.trim();
+  if ($('oNoteTemplate').value.trim()) body.note_template = $('oNoteTemplate').value.trim();
+  if ($('oSameCompany').checked) body.allow_same_company = true;
+  try {
+    const rec = await api('/api/v1/outreach', { method: 'POST', body: JSON.stringify(body) });
+    toast('Kontakt angelegt'); $('oLinkedin').value = $('oWebsite').value = $('oCompany').value = ''; $('oNew').open = false;
+    oOpen = rec.id; await loadOutreach();
+  } catch (err) {
+    const CONFLICT = { company_in_outreach: 'Bei dieser Firma läuft schon ein Kontakt. Trotzdem? Dann „auch bei gleicher Firma“ anhaken.',
+      company_blocked: 'Die Firma ist im Register gesperrt (Kunde/ausgeschlossen/nicht kontaktieren).',
+      person_in_registry: 'Diese Person wird bereits von einem anderen Agenten kontaktiert.',
+      person_do_not_contact: 'Diese Person möchte nicht kontaktiert werden.', person_customer: 'Diese Person ist als Kunde eingetragen.',
+      person_excluded: 'Diese Person ist ausgeschlossen.' };
+    if (err.status === 409 && err.detail && err.detail.id) { oOpen = err.detail.id; toast('Kontakt existiert bereits'); loadOutreach(); }
+    else if (err.status === 409 && err.detail && CONFLICT[err.detail.error]) $('oErr').textContent = CONFLICT[err.detail.error];
+    else $('oErr').textContent = err.message === 'Eingabe ungültig' ? 'Bitte LinkedIn-Profil, Thema und Website oder Firmenname prüfen.' : err.message;
+  } finally { $('oSubmit').disabled = false; }
+});
+$('oFilter').addEventListener('click', (e) => { if (e.target.dataset.v == null) return; oFilter = e.target.dataset.v; loadOutreach(); });
+async function loadOutreach() {
+  try {
+    const all = await api('/api/v1/outreach');
+    const counts = {}; for (const r of all) counts[r.status] = (counts[r.status] || 0) + 1;
+    $('oFilter').replaceChildren(...O_FILTERS.map(([v, label]) => el('button', { 'data-v': v, 'aria-pressed': String(oFilter === v), type: 'button' },
+      label + ' ', el('span', { class: 'faint num', text: v ? (v === 'researching' ? (counts.researching || 0) + (counts.connected || 0) : counts[v] || 0) : all.length }))));
+    const rows = all.filter((r) => !oFilter || r.status === oFilter || (oFilter === 'researching' && r.status === 'connected'));
+    if (!rows.some((r) => r.id === oOpen) && rows.length) oOpen = rows[0].id;  // always show a detail when possible
+    $('oList').replaceChildren(...(rows.length ? rows.map((r) => el('div', { class: 'item' + (r.id === oOpen ? ' open' : ''), onclick: () => { oOpen = r.id; loadOutreach(); } },
+      el('div', {}, el('div', { text: r.name || host(r.linkedin_url) + ' (Profil)' }), el('div', { class: 'sub', text: (r.company_name || (r.company_website ? host(r.company_website) : '')) + ' · ' + r.topic })),
+      el('div', { style: 'text-align:right' }, pill(r.status), el('div', { class: 'sub num', text: when(r.updated_at) })))) :
+      [el('p', { class: 'empty', text: all.length ? 'Keine Kontakte in diesem Status.' : 'Noch keine Kontakte. Oben „Neuer Kontakt“ öffnen – oder in „Leads“ bei einer Person auf „Outreach“ klicken.' })]));
+    const open = all.find((r) => r.id === oOpen);
+    $('oDetail').replaceChildren(open ? outreachDetail(open) : all.length ? el('p', { class: 'muted', text: 'Kontakt auswählen.' }) : '');
+    clearTimeout(oTimer); oTimer = setTimeout(() => !$('outreach').hidden && document.activeElement?.tagName !== 'TEXTAREA' && loadOutreach(), 20000);
+  } catch (e) { $('oList').replaceChildren(el('p', { class: 'err', text: e.message })); }
+}
+function outreachDetail(r) {
+  const act = async (path, msg) => { try { await api('/api/v1/outreach/' + encodeURIComponent(r.id) + path, { method: path ? 'POST' : 'DELETE' }); toast(msg); if (!path) oOpen = null; loadOutreach(); } catch (e) { toast(e.message); } };
+  const c = r.connection || {};
+  const blocks = [
+    el('div', { class: 'block' }, el('div', { style: 'display:flex;gap:10px;align-items:center;font-size:17px;font-weight:600;letter-spacing:-.01em' }, r.name || 'Unbekannter Name', pill(r.status)),
+      el('div', { class: 'muted small', text: r.headline || '' }),
+      el('div', { class: 'small', style: 'margin-top:8px' }, link(r.linkedin_url, 'LinkedIn-Profil ↗'), r.company_website ? ' · ' : '', r.company_website ? link(r.company_website, host(r.company_website)) : '')),
+    el('div', { class: 'block' }, el('h3', { text: 'Verbindung' }), el('dl', { class: 'kv' },
+      el('dt', { text: 'Stand' }), el('dd', {}, pill(c.state || 'unknown')),
+      el('dt', { text: 'Prüfungen' }), el('dd', { class: 'num', text: String(c.checks || 0) }),
+      el('dt', { text: 'Zuletzt' }), el('dd', { class: 'num', text: when(c.last_checked_at) }),
+      el('dt', { text: 'Nächste' }), el('dd', { class: 'num', text: when(c.next_check_at) }))),
+  ];
+  if (r.connection_note) blocks.push(el('div', { class: 'block' },
+    el('h3', {}, el('span', { text: 'Vernetzungsnotiz' }), el('button', { class: 'btn ghost', type: 'button', onclick: () => copy(r.connection_note), text: 'Kopieren' })),
+    el('div', { class: 'text', text: r.connection_note }), el('div', { class: 'faint small num', style: 'margin-top:4px', text: r.connection_note.length + ' Zeichen' })));
+  if (r.findings && r.findings.length) blocks.push(el('div', { class: 'block' }, el('h3', { text: 'Ansatzpunkte zu „' + r.topic + '“' }),
+    el('div', { class: 'evidence' }, ...r.findings.map((f) => el('div', {}, el('div', { text: f.need }), el('div', { class: 'muted small', text: 'Wo: ' + f.where }),
+      el('div', { class: 'quote small', style: 'margin-top:6px' }, f.quote, el('span', { class: 'src' }, link(f.url, host(f.url)))))))));
+  if (r.message) {
+    const ta = el('textarea', { style: 'min-height:180px' }); ta.value = r.message;
+    blocks.push(el('div', { class: 'block' },
+      el('h3', {}, el('span', { text: 'Nachricht (Entwurf)' }), el('button', { class: 'btn ghost', type: 'button', onclick: () => copy(ta.value), text: 'Kopieren' })), ta,
+      el('div', { class: 'faint small', style: 'margin-top:4px', text: 'Änderungen hier bleiben nur im Browser – vor dem Senden selbst prüfen.' })));
+  }
+  if (r.error) blocks.push(el('p', { class: 'muted small', text: 'Hinweis: ' + r.error }));
+  blocks.push(el('div', { class: 'actions' },
+    ['awaiting_connection', 'expired', 'failed'].includes(r.status) ? el('button', { class: 'btn', type: 'button', onclick: () => act('/accepted', 'Recherche gestartet'), text: 'Angenommen – recherchieren' }) : null,
+    r.status === 'ready' ? el('button', { class: 'btn primary', type: 'button', onclick: () => act('/sent', 'Als gesendet markiert'), text: 'Als gesendet markieren' }) : null,
+    r.status !== 'do_not_contact' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => confirm('Diese Person dauerhaft für alle Agenten sperren?') && act('/do-not-contact', 'Gesperrt'), text: 'Nicht kontaktieren' }) : null,
+    el('button', { class: 'btn danger', type: 'button', onclick: () => confirm('Kontakt löschen?') && act('', 'Gelöscht'), text: 'Löschen' }),
+    el('span', { class: 'faint small num', style: 'margin-left:auto', text: money(r.cost_usd) })));
+  return el('div', { class: 'panel' }, ...blocks);
+}
+
+/* ------------------------------------------------------------------ registry */
+const R_FILTERS = [['', 'Alle'], ['in_outreach', 'im Outreach'], ['contacted', 'kontaktiert'], ['do_not_contact', 'gesperrt'], ['customer', 'Kunde'], ['excluded', 'ausgeschlossen'], ['delivered', 'geliefert']];
+let rFilter = '';
+function registryRef() {
+  const ref = {};
+  if ($('rLinkedin').value.trim()) ref.linkedin_url = $('rLinkedin').value.trim();
+  if ($('rWebsite').value.trim()) ref.company_website = $('rWebsite').value.trim();
+  if ($('rCompany').value.trim()) ref.company_name = $('rCompany').value.trim();
+  return ref;
+}
+$('rForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); const ref = registryRef(); $('rMsg').className = 'small'; $('rMsg').textContent = '';
+  if (!Object.keys(ref).length) { $('rMsg').className = 'err'; $('rMsg').textContent = 'Profil, Website oder Firmenname angeben.'; return; }
+  try {
+    const item = { ...ref, status: $('rStatus').value, source: 'ui' }; if ($('rNote').value.trim()) item.note = $('rNote').value.trim();
+    const res = await api('/api/v1/registry', { method: 'POST', body: JSON.stringify({ items: [item] }) });
+    toast(res.created ? 'Eingetragen' : res.updated ? 'Aktualisiert' : 'Unverändert (gesperrt bleibt gesperrt)');
+    for (const k of ['rLinkedin', 'rWebsite', 'rCompany', 'rNote']) $(k).value = '';
+    loadRegistry();
+  } catch (err) { $('rMsg').className = 'err'; $('rMsg').textContent = err.message === 'Eingabe ungültig' ? 'Bitte Eingaben prüfen (LinkedIn-Profil /in/…, https-Website).' : err.message; }
+});
+$('rCheck').addEventListener('click', async () => {
+  const ref = registryRef(); if (!Object.keys(ref).length) return;
+  try {
+    const [c] = await api('/api/v1/registry/check', { method: 'POST', body: JSON.stringify({ items: [ref] }) });
+    $('rMsg').className = c.blocked ? 'err' : 'small';
+    $('rMsg').textContent = !c.known ? 'Unbekannt – frei.' : (c.blocked ? 'Gesperrt: ' : 'Bekannt, nicht gesperrt: ') +
+      [c.person ? 'Person ' + (LABEL[c.person.status] || c.person.status) + ' (' + c.person.source + ')' : null,
+       c.company ? 'Firma: ' + Object.entries(c.company.statuses).map(([s, n]) => (LABEL[s] || s) + ' ×' + n).join(', ') : null].filter(Boolean).join(' · ');
+  } catch (err) { $('rMsg').className = 'err'; $('rMsg').textContent = err.message; }
+});
+$('rFilter').addEventListener('click', (e) => { if (e.target.dataset.v == null) return; rFilter = e.target.dataset.v; loadRegistry(); });
+let rTimer; $('rQ').addEventListener('input', () => { clearTimeout(rTimer); rTimer = setTimeout(loadRegistry, 250); });
+async function loadRegistry() {
+  $('rFilter').replaceChildren(...R_FILTERS.map(([v, label]) => el('button', { 'data-v': v, 'aria-pressed': String(rFilter === v), type: 'button', text: label })));
+  const p = new URLSearchParams(); if (rFilter) p.set('status', rFilter); if ($('rQ').value.trim()) p.set('q', $('rQ').value.trim());
+  try {
+    const rows = await api('/api/v1/registry?' + p);
+    $('rRows').replaceChildren(...(rows.length ? rows.map((e) => el('tr', {},
+      el('td', {}, e.kind === 'person' ? link(e.linkedin_url, e.linkedin_url.replace(/^https:\/\/www\.linkedin\.com/, '')) : el('span', { text: e.company_name || e.company_domain || '–' }),
+        el('div', { class: 'sub', text: [e.kind === 'person' ? 'Person' : 'Firma', e.kind === 'person' ? (e.company_name || e.company_domain) : e.company_domain, e.note].filter(Boolean).join(' · ') })),
+      el('td', {}, pill(e.status)),
+      el('td', { class: 'muted', text: e.source }),
+      el('td', { class: 'num muted', text: when(e.updated_at) }),
+      el('td', { style: 'text-align:right' }, el('button', { class: 'btn ghost', type: 'button', text: 'Entfernen',
+        onclick: async () => { if (!confirm('Eintrag entfernen? Die Person/Firma ist danach wieder frei.')) return;
+          try { await api('/api/v1/registry/' + encodeURIComponent(e.id), { method: 'DELETE' }); toast('Entfernt'); loadRegistry(); } catch (err) { toast(err.message); } } }))))
+      : [el('tr', {}, el('td', { class: 'empty', colspan: 5, text: 'Keine Einträge.' }))]));
+  } catch (err) { $('rRows').replaceChildren(el('tr', {}, el('td', { class: 'err', colspan: 5, text: err.message }))); }
+}
+
+/* ------------------------------------------------------------------ start */
+async function statusDot() {
+  try { const s = await api('/api/v1/status'); $('dot').className = s.search.configured ? 'ok' : 'bad'; $('dot').title = s.search.configured ? 'Suche eingerichtet' : 'Suche nicht eingerichtet'; }
+  catch { $('dot').className = 'bad'; }
+}
+statusDot();
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));  // back button, #links
+show((location.hash || '#' + store.get('tab', 'overview')).slice(1));
+setInterval(() => { if (!$('overview').hidden) loadOverview(); }, 30000);
+</script>
+</body>
+</html>

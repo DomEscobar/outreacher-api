@@ -1,0 +1,1023 @@
+{
+  "request": {
+    "query": "Inhaber, Gruendungspartner oder Managing Partner einer deutschen Rechtsanwaltskanzlei in Deutschland. Geschaeftsfuehrer oder Kanzleigruender, keine angestellten Rechtsanwaelte und keine Steuerberater. LinkedIn Profile von Entscheidern in kleinen und mittelstaendischen Kanzleien in Berlin, Hamburg, Muenchen oder Frankfurt.",
+    "category": "people",
+    "numResults": 10,
+    "includeDomains": [
+      "linkedin.com"
+    ],
+    "contents": {
+      "highlights": true
+    }
+  },
+  "http_status": 200,
+  "receipt": {
+    "x-treg-call-id": "7d41480abc9d48bdb0656305dc05f7d0",
+    "x-treg-cost-micro": "7000",
+    "x-treg-routed-tool": "treg.people.search"
+  },
+  "response": {
+    "requestId": "231ee844420319aa555348684e2134b2",
+    "resolvedSearchType": "",
+    "results": [
+      {
+        "id": "https://exa.ai/library/person/18v7xsgxgms",
+        "title": "Vanessa Elting",
+        "url": "https://linkedin.com/in/vanessa-elting-893496218",
+        "publishedDate": "2026-09-27T08:31:22.000Z",
+        "highlights": [
+          "Fachanwältin für Vergaberecht sowie Bau- und Architektenrecht | Geschäftsführende Gesellschafterin | Vorstand Deutsche Gesellschaft für Baurecht e.V.\n...\n### Gründerin I Geschäftsführerin - ELTING Rechtsanwaltsgesellschaft mbH (Current)\n...\nDepartment: General Management • Level: Founder\n\n### [Deutsche Gesellschaft für Baurecht e.V.](https://www.linkedin.com/company/deutsche-gesellschaft-f%C3%BCr-baurecht-e.v.)\n\n#### Vorstandsmitglied (Current)\n\nJan 2021 - Present (5 years and 5 months)\n\nDepartment: General Management • Level: Partner\n...\nDeutsche Gesellschaft für Baurecht e.V. is a nonprofit organization. Deutsche Gesellschaft für Baurecht e.V. is a company that provides legal services in the field of construction. Deutsche Gesellschaft für Baurecht e.V. has 1-10 employees (-20% YoY). Headquartered in Wiesbaden, Hessen, Germany.\n\n### Fachanwältin Bau- Architektenrecht u Vergaberecht - [MEK Rechtsanwaltsgesellschaft mbH](https://www.linkedin.com/company/mek-rechtsanwaltsgesellschaft-mbh)\n...\nMEK Rechtsanwaltsgesellschaft mbH is a Law Practice company. MEK Rechtsanwaltsgesellschaft mbH has 1-10 employees, founded in 1997. Headquartered in München, Bavaria, Germany, with an office in Hamburg.\n\n### Fachanwältin für Vergaberecht u. für Bau- und Architektenrecht - [KNH Rechtsanwälte](https://www.linkedin.com/company/knh-rechtsanw%C3%A4lte)\n...\nKNH Rechtsanwälte is a Law Practice company. KNH Rechtsanwälte is a law firm that provides services in various areas such as private law, architecture law, property law, public law, and business law. KNH Rechtsanwälte has 1-10 employees (+20% YoY), founded in 2003. Headquartered in frankfurt am main, Germany.\n\n### Rechtsanwältin - [HFK Rechtsanwälte PartGmbB](https://www.linkedin.com/company/hfk-rechtsanwaelte-part-gmbb)\n...\nRechtsanwältin bei HFK Rechtsanwälte LLP, Frankfurt am Main\n...\nHFK Rechtsanwälte PartGmbB is a Law Practice company. HFK Rechtsanwälte is a leading law firm in the fields of construction, real estate, and infrastructure in Germany. HFK Rechtsanwälte PartGmbB has 20-30 employees (+20% YoY), founded in 1974. Headquartered in Frankfurt am Main, Hessen, Germany, with presence in United States.\n\n### Rechtsanwältin - Kanzlei Lotz und Partner, Frankfurt am Main\n...\n2009 - Jan 2011 (2 years)\n\nSchwerpunkt Bau-, Architekten- und Immobilienrecht\n...\nwww.linkedin.com ... anwalts ... urecht- ... 8764 ... Gt): Die ... Wochen habe ich hier von der ... der ELTING Rechtsanwal ... H berichtet. Über ... vielen positiven Rück ... ich mich sehr"
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/D4E03AQHzIsy8wYD31g/profile-displayphoto-scale_200_200/B4EZ7wg5ITKAAc-/0/1782151615873?e=2147483647&v=beta&t=gfhQJATFc-Vp09E3bgzAOpSM0WPxr6klCg8VsSH_JD4",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/18v7xsgxgms",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Vanessa Elting",
+              "firstName": "Vanessa",
+              "lastName": "Elting",
+              "location": "Frankfurt, Hesse, Germany",
+              "workHistory": [
+                {
+                  "title": "Gründerin I Geschäftsführerin",
+                  "location": "Frankfurt am Main, Hessen, Germany",
+                  "dates": {
+                    "from": "2026-05-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "ELTING Rechtsanwaltsgesellschaft mbH"
+                  }
+                },
+                {
+                  "title": "Vorstandsmitglied",
+                  "location": null,
+                  "dates": {
+                    "from": "2021-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/vny0gpyq28p",
+                    "name": "Deutsche Gesellschaft für Baurecht e.V."
+                  }
+                },
+                {
+                  "title": "Arbeitskreisleiterin Forum Junges Baurecht",
+                  "location": null,
+                  "dates": {
+                    "from": "2013-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/vny0gpyq28p",
+                    "name": "Deutsche Gesellschaft für Baurecht e.V."
+                  }
+                },
+                {
+                  "title": "Fachanwältin Bau- Architektenrecht u Vergaberecht",
+                  "location": "Frankfurt am Main, Hessen, Germany",
+                  "dates": {
+                    "from": "2023-05-01",
+                    "to": "2026-05-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/x4wl7gn8n9r",
+                    "name": "MEK Rechtsanwaltsgesellschaft mbH"
+                  }
+                },
+                {
+                  "title": "Fachanwältin für Vergaberecht u. für Bau- und Architektenrecht",
+                  "location": "Frankfurt am Main, Hessen, Germany",
+                  "dates": {
+                    "from": "2016-02-01",
+                    "to": "2023-04-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/n1j45qqkmbh",
+                    "name": "KNH Rechtsanwälte"
+                  }
+                },
+                {
+                  "title": "Rechtsanwältin",
+                  "location": null,
+                  "dates": {
+                    "from": "2011-01-01",
+                    "to": "2016-01-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/m31w5xvy9sy",
+                    "name": "HFK Rechtsanwälte PartGmbB"
+                  }
+                },
+                {
+                  "title": "Rechtsanwältin",
+                  "location": null,
+                  "dates": {
+                    "from": "2009-01-01",
+                    "to": "2011-01-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Kanzlei Lotz und Partner, Frankfurt am Main"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "Rechtswissenschaften",
+                  "dates": {
+                    "from": "2003",
+                    "to": "2006"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/k3yw91gz1x2",
+                    "name": "Heidelberg University"
+                  }
+                },
+                {
+                  "degree": "Rechtswissenschaften",
+                  "dates": {
+                    "from": "2000",
+                    "to": "2002"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/kbhty9lspgg",
+                    "name": "Universität des Saarlandes"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/ftrbsq2bkc9",
+        "title": "Andree Hübner",
+        "url": "https://linkedin.com/in/andree-h%C3%BCbner-8a78121b4",
+        "publishedDate": "2026-10-07T05:41:52.000Z",
+        "highlights": [
+          "Rechtsanwalt & Kanzleiinhaber bei Kanzlei Hübner Medizinrecht sowie Gründer und Geschäftsführer bei der Litigation Forum Rechtsanwalts GmbH\n\nBerlin, Berlin, Germany (DE)\n...\n### Rechtsanwalt & Kanzleiinhaber - Kanzlei Hübner Medizinrecht (Current)\n...\n### Co-Founder und Geschäftsführer - [Litigation Forum Rechtsanwalts GmbH](https://www.linkedin.com/company/litigation-forum) (Current)\n...\nLitigation Forum Rechtsanwalts GmbH is a Law Practice company. Terminsvertretung & Prozessführung bundesweit | Litigation Forum. Litigation Forum Rechtsanwalts GmbH has 1-10 employees (-10% YoY), founded in 2020. Headquartered in Berlin, Germany.\n...\n[Gansel Rechtsanwälte](https://www.linkedin.com/company/gansel-rechtsanwaelte)\n...\nGansel Rechtsanwälte is a Law Practice company. Gansel Rechtsanwälte is a law firm specializing in consumer protection in Berlin and nationwide. They offer services in banking law, insurance law, labor law, diesel scandal, and traffic law. They provide free consultations without risk. Gansel Rechtsanwälte has 10-20 employees (-20% YoY), founded in 2004. Headquartered in Berlin, Germany, with presence in United States."
+        ],
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/ftrbsq2bkc9",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Andree Hübner",
+              "firstName": "Andree",
+              "lastName": "Hübner",
+              "location": "Berlin, Berlin, Germany",
+              "workHistory": [
+                {
+                  "title": "Co-Founder und Geschäftsführer",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2020-10-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/gdxppvbf4vw",
+                    "name": "Litigation Forum Rechtsanwalts GmbH"
+                  }
+                },
+                {
+                  "title": "Rechtsanwalt & Kanzleiinhaber",
+                  "location": "Глинике",
+                  "dates": {
+                    "from": "2025-07-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/frd39m2cfbk",
+                    "name": "Kanzlei Hübner Medizinrecht"
+                  }
+                },
+                {
+                  "title": "Leitung Automotive",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2018-02-01",
+                    "to": "2022-03-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/frd39m2cfbk",
+                    "name": "Gansel Rechtsanwälte"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "2. Staatsexamen",
+                  "dates": {
+                    "from": "2015",
+                    "to": "2017"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Kammergericht Berlin"
+                  }
+                },
+                {
+                  "degree": "Staatsexamen Recht",
+                  "dates": {
+                    "from": "2009",
+                    "to": "2014"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/xplgwcwksbg",
+                    "name": "The University of Freiburg"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/lfm7ft2l58h",
+        "title": "Andreas Jede",
+        "url": "https://linkedin.com/in/rajede",
+        "publishedDate": "2026-09-22T11:50:31.000Z",
+        "highlights": [
+          "Geschäftsführender Gesellschafter Dr. Schmitz & Partner - Rechtsanwälte\n...\nNeugierig auf die Zukunft. Gespannt auf neue Aufgaben. Als Generalist in der Lage, die Ziele mit den Mandanten zu definieren und Spezialisten hinz ... uziehen und zu koordinieren. Spezialisierung im Waffenrecht und Strafrecht, vor allem Steuerstrafrecht\n...\n### Managing Partner - [Dr. Schmitz & Partner - Rechtsanwälte](https://www.linkedin.com/company/dr-schmitz-%26-partner---rechtsanw%C3%A4lte) (Current)\n\nJan 1997 - Present (29 years and 8 months) in Baraschstr. 3a, 14193 Berlin\n\nKomplexe Aufgaben erfodern Spezialisten und Koordination durch einen Generalisten! Vorwiegend als Strafverteidiger tätig, insbesondere im Waffenrecht und Steuerstrafrecht. Darüber hinaus intensiv im Berufsrecht der freien Berufe tätig, auch verteidigend vor den Berufsgerichten.\n\nDepartment: General Management • Level: Partner\n\nDr. Schmitz & Partner - Rechtsanwälte is a Law Practice company. Dr. Schmitz & Partner is a law firm that specializes in German waffenrecht and Hauspostille. They provide legal services in various fields such as Arbeitsrecht, Erbrecht, Familienrecht, Scheidung und Versorgungssausgleich, Sorgerecht und Umgangsrecht. Dr. Schmitz & Partner - Rechtsanwälte has 1-10 employees, founded in 1997. Headquartered in Berlin, Berlin, Germany, with presence in United States.\n\n### Vorstand - Rechtsanwaltskammer Berlin\n\nJan 2000 - Mar 2015 (15 years and 2 months) in Berlin, Land Berlin, Germany\n\n15 Jahre in den verschiedensten Positionen in den Abteilungen und im Präsidium tätig gewesen und damit mit allen Bereichen des anwaltlichen Berufsrechtes vertraut. Ich vertrete in allen berufsrechtlichen Fragestellungen und verteidige vor dem Anwaltsgericht und Anwaltsgerichtshof.\n\nDepartment: General Management • Level: Director\n\n### Owner - Jede & Krägeloh\n\nJan 1992 - Jan 1997 (5 years)\n...\n: General Management • Level: Owner"
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/C5603AQGG_pqDkt11eA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1517758002579?e=2147483647&v=beta&t=qLr-ZSaIDAMKnxGPhJHQ_LX6fFy8pNzPf3FA1TCdylI",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/lfm7ft2l58h",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Andreas Jede",
+              "firstName": "Andreas",
+              "lastName": "Jede",
+              "location": "Berlin Metropolitan Area",
+              "workHistory": [
+                {
+                  "title": "Managing Partner",
+                  "location": "Baraschstr. 3a, 14193 Berlin",
+                  "dates": {
+                    "from": "1997-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/nr3kykx6mgr",
+                    "name": "Dr. Schmitz & Partner - Rechtsanwälte"
+                  }
+                },
+                {
+                  "title": "Vorstand",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2000-01-01",
+                    "to": "2015-03-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Rechtsanwaltskammer Berlin"
+                  }
+                },
+                {
+                  "title": "Owner",
+                  "location": null,
+                  "dates": {
+                    "from": "1992-01-01",
+                    "to": "1997-01-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Jede & Krägeloh"
+                  }
+                },
+                {
+                  "title": "Freier Mitarbeiter",
+                  "location": null,
+                  "dates": {
+                    "from": "1990-08-01",
+                    "to": "1992-01-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Dr. Schmitz & Partner"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "Abitur",
+                  "dates": {
+                    "from": "1975",
+                    "to": "1979"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Schule Schloss Salem"
+                  }
+                },
+                {
+                  "degree": "1. Staatsexamen, Jurastudium, allgemein",
+                  "dates": null,
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/cxk35ck0krc",
+                    "name": "Freie Universität Berlin"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/gxyj6n0gdlq",
+        "title": "Ann Marie Welker",
+        "url": "https://linkedin.com/in/ann-marie-welker-810b7614",
+        "publishedDate": "2026-10-09T11:08:18.000Z",
+        "highlights": [
+          "As founder of a boutique law firm, Ann Marie Welker is an entrepreneur and an accomplished technology and litigation expert with over 20 years’ experience advising corporate counsel, executives and investors on a broad range of technology-related transactions and disputes. As a practicing lawyer in Frankfurt and Stuttgart at a premier German law firm, and also as vice chair of the advisory board of an automotive supply manufacturer, Ann Marie has spent her career focused on enabling innovative technical projects, and founded Welker Rechtsanwälte to intensify that focus for the benefit of multinational conglomerates, German Mittelstand and investors. The small firm agility of Welker Rechtsanwälte can be augmented in any scale necessary with a bespoke interdisciplinary team drawn from Ann Marie’s broad international network of highly qualified legal and technical experts, including partners of top-tier law firms. Ann Marie has particular expertise in technology-related litigation. She is a highly effective trial lawyer, having won and successfully settled landmark cases in the area of information technology. Ann Marie represents clients from many industries including automotive, transport, IT, connectivity, software development and SaaS, renewable energy, financial services, fashion and retail. A native of the United States with a full German legal qualification, Ann Marie is a Best Lawyers® recommended lawyer for technology, information technology and M&A.\n...\n### Founder - [Welker Rechtsanwälte](https://www.linkedin.com/company/welker-rechtsanw-lte) (Current)\n...\nBoutique law firm advising on technical projects, contracts, outsourcing, IT and technology-related litigation.\n\nDepartment: General Management • Level: Founder\n\nWelker Rechtsanwälte is a Law Practice company. Welker Rechtsanwälte is a law firm specializing in national and international technology project matters. They advise companies in all phases of technical projects, from conception to contract drafting and negotiation and successful implementation. They support resolution through troubleshooting in small, experienced teams or represent clients in litigation. Welker Rechtsanwälte has 1-10 employees, founded in 2008. Headquartered in frankfurt am main, Germany, with presence in United States.\n\n### Co-founder and advisory board member - Georgetown Club of Germany (Current)\n...\nDepartment: General Management • Level: Partner\n...\nmbH](https://www.linkedin.com/company/steiff-beteiligungsgesellschaft-mbh)\n...\n### Associated partner - [Gleiss Lutz](https://www.linkedin.com/company/gleiss-lutz)\n...\nGleiss Lutz is a Law Practice company. Gleiss Lutz is one of Germany’s leading internationally active full-service law firms. They provide a wide range of legal services and expertise in various industries such as cybersecurity, digital future, legal tech, and metaverse. They are actively involved in shaping the legal landscape and are committed to sustainability and environmental friendliness. Gleiss Lutz has 600-700 employees (+5-6% YoY), founded in 1949. Headquartered in Germany, with presence in United States, United Kingdom, and Belgium. Its workforce is distributed across 13 countries (including Germany, United Kingdom, United States, Belgium, and Spain)."
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/C4D03AQFcKHKZs3AK4w/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1530099280563?e=2147483647&v=beta&t=5UJ3jXvzqdgHRPnlxzPJM6WvhHdGUtOKQhvjsMGn8S0",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/gxyj6n0gdlq",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Ann Marie Welker",
+              "firstName": "Ann",
+              "lastName": "Welker",
+              "location": "Frankfurt, Hesse, Germany",
+              "workHistory": [
+                {
+                  "title": "Founder",
+                  "location": null,
+                  "dates": {
+                    "from": "2008-07-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/f2hqdbljfnb",
+                    "name": "Welker Rechtsanwälte"
+                  }
+                },
+                {
+                  "title": "Co-founder and advisory board member",
+                  "location": "Frankfurt am Main, Hessen, Germany",
+                  "dates": {
+                    "from": "2011-05-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Georgetown Club of Germany"
+                  }
+                },
+                {
+                  "title": "Vice Chair of the Advisory Board",
+                  "location": "Giengen an der Brenz, Baden-Württemberg, Germany",
+                  "dates": {
+                    "from": "2011-05-01",
+                    "to": "2016-06-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/cs1d0ftpv2z",
+                    "name": "Steiff Beteiligungsgesellschaft mbH"
+                  }
+                },
+                {
+                  "title": "Associated partner",
+                  "location": null,
+                  "dates": {
+                    "from": "1997-05-01",
+                    "to": "2008-06-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/8k2x08bf3pd",
+                    "name": "Gleiss Lutz"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "German, French",
+                  "dates": {
+                    "from": "1986",
+                    "to": "1989"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/3xcmwy43z8w",
+                    "name": "Georgetown University"
+                  }
+                },
+                {
+                  "degree": "Dr. iur., law",
+                  "dates": {
+                    "from": "1989",
+                    "to": "1993"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/0xqm711t8vw",
+                    "name": "Goethe University Frankfurt"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/49qdv9dcwrq",
+        "title": "Birgit Geißler",
+        "url": "https://linkedin.com/in/birgit-gei%C3%9Fler-105708259",
+        "publishedDate": "2026-10-05T13:27:09.000Z",
+        "highlights": [
+          "Geschäftsführende Gesellschafterin bei Pietschmann Legal Rechtsanwaltsgesellschaft mbH\n\nBerlin, Berlin, Germany (DE)\n...\nGeschäftsführende Gesellschafterin bei Pietschmann Legal Rechtsanwaltsgesellschaft mbH\n...\n### [Pietschmann Legal](https://www.linkedin.com/company/pietschmannlegal)\n...\n#### Geschäftsführende Gesellschafterin (Current)\n\nJan 2017 - Present (8 years and 10 months)\n\nDepartment: General Management • Level: Partner\n\n#### Geschäftsführer (Current)\n\nJan 2015 - Present (10 years and 10 months) in Berlin, Land Berlin, Germany\n...\n: General Management ... Level: Director\n...\nPietschmann Legal is a Law Practice company. Pietschmann Legal Rechtsanwaltsgesellschaft mbH is a best practice consulting company. Pietschmann Legal has 1-10 employees. Headquartered in Berlin, Germany."
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/D4E03AQGIXpbYJ3VNXg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1670405794341?e=2147483647&v=beta&t=0zbl4hR-58oB133TiqaTdv2R11UlIMy1Bz21J2RwNu4",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/49qdv9dcwrq",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Birgit Geißler",
+              "firstName": "Birgit",
+              "lastName": "Geißler",
+              "location": "Berlin, Berlin, Germany",
+              "workHistory": [
+                {
+                  "title": "Fachanwältin für Bau- und Architektenrecht",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2019-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/vc0krv59zzr",
+                    "name": "Pietschmann Legal"
+                  }
+                },
+                {
+                  "title": "Geschäftsführende Gesellschafterin",
+                  "location": null,
+                  "dates": {
+                    "from": "2017-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/vc0krv59zzr",
+                    "name": "Pietschmann Legal"
+                  }
+                },
+                {
+                  "title": "Geschäftsführer",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2015-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/vc0krv59zzr",
+                    "name": "Pietschmann Legal"
+                  }
+                },
+                {
+                  "title": "Rechtsanwältin",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2005-08-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/vc0krv59zzr",
+                    "name": "Pietschmann Legal"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "Rechtswissenschaften",
+                  "dates": null,
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/cxk35ck0krc",
+                    "name": "Freie Universität Berlin"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/74psyhp7vtm",
+        "title": "Kay Reese",
+        "url": "https://linkedin.com/in/kayreese",
+        "publishedDate": "2026-10-05T14:30:10.000Z",
+        "highlights": [
+          "# Kay Reese\n\nKanzleiinhaber bei Reese Rechtsanwälte\n\nBerlin, Berlin, Germany (DE)\n...\nFachanwalt für Strafrecht, Verkehrsrecht und Versicherungsrecht, Verteidigung in Bußgeld- und Strafsachen, Regulierung von Verkehrsunfällen, spezialisiert auf die Regulierung von Personengroßschäden, mit drei Berufsträgern am Standort Berlin bieten wir professionelle Beratung in ausgewählten Rechtsgebieten auf sehr hohem Niveau an\n...\n### Inhaber - Reese Rechtsanwälte (Current)\n\nJun 2006 - Present (20 years and 4 months) in Berlin, Land Berlin, Germany\n\nFachanwalt für Strafrecht, Fachanwalt für Verkehrsrecht und Fachanwalt für Versicherungsrecht\n\nDepartment: General Management • Level: Owner\n\n### Geschäftsführender Gesellschafter - Consultia Rechtsanwaltsgesellschaft mbH\n\nMar 2012 - Dec 2015 (3 years and 9 months) in Berlin, Land Berlin, Germany\n\nDepartment: General Management • Level: Partner"
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/C4E03AQEmj0LB1G0ZWQ/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1517632562087?e=2147483647&v=beta&t=4V1eOSk-0YFMHfrN0NPH0wq2d_0HwzBXoubM8GKl6cA",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/74psyhp7vtm",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Kay Reese",
+              "firstName": "Kay",
+              "lastName": "Reese",
+              "location": "Berlin, Berlin, Germany",
+              "workHistory": [
+                {
+                  "title": "Inhaber",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2006-06-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Reese Rechtsanwälte"
+                  }
+                },
+                {
+                  "title": "Geschäftsführender Gesellschafter",
+                  "location": "Berlin, Land Berlin, Germany",
+                  "dates": {
+                    "from": "2012-03-01",
+                    "to": "2015-12-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Consultia Rechtsanwaltsgesellschaft mbH"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "Diplom, Jurastudium, allgemein",
+                  "dates": {
+                    "from": "1998",
+                    "to": "2003"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/cxk35ck0krc",
+                    "name": "Freie Universität Berlin"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/8nb7kntt900",
+        "title": "Dr. Ines Schmid",
+        "url": "https://linkedin.com/in/dr-ines-schmid-bab835a2",
+        "publishedDate": "2026-09-16T03:33:57.000Z",
+        "highlights": [
+          "Gründerin und Inhaberin Kanzlei rechtLICH\n\nFrankfurt, Hesse, Germany (DE)\n...\n### Inhaberin - Kanzlei rechtLICH (Current)\n\nAug 2011 - Present (15 years and 1 month) in Frankfurt am Main, Hessen, Germany\n\nGründerin und Inhaberin Wir sind Beratung. https://rechtlich.legal\n\nDepartment: General Management • Level: Owner\n\n### Mitinhaberin und Gründerin - SUKAwave (Current)\n...\n### Fachanwältin für Arbeitsrecht - [Luther Rechtsanwaltsgesellschaft mbH](https://www.linkedin.com/company/luther-rechtsanwaltsgesellschaft-mbh)\n...\nLuther Rechtsanwaltsgesellschaft mbH is a Legal Services company. Luther Rechtsanwaltsgesellschaft mbH is a German, international law firm that provides advice in the field of business law and tax law. Luther Rechtsanwaltsgesellschaft mbH has 600-700 employees (+10% YoY) and has annual revenue in the EUR150M-EUR200M range, founded in 1992. Headquartered in Germany, operates in 6 countries (including United States, Luxembourg, China, Belgium, and United Kingdom). Its workforce is distributed across 18 countries (including Germany, India, Singapore, Belgium, and China).\n...\n- [2026-04-01 · Dr. Ines Schmid shared this] [📣 Wir sind heute umgezogen 🏁 📍 Unser neues \"Kanzlei-Zuhause\" 📭...](https://www.linkedin.com/posts/dr-ines-schmid-bab835a2_wir-sind-heute-umgezogen-unser-activity-7445192749504520192-jCRE): 📣 Wir sind heute umgezogen 🏁 📍 Unser neues \"Kanzlei-Zuhause\" 📭 Villa Sander, Mainzer Landstr. 10, 60325 Frankfurt ☎️ (069) 363935383 🎯 Wir freuen uns auf viele schöne Begegnungen mit Ihnen und Euch...\n...\n- [2022-12-22 · Dr. Ines Schmid posted this] [Liebe Geschäftspartnerinnen und Geschäftspartner, liebe Freunde und...](https://www.linkedin.com/posts/dr-ines-schmid-bab835a2_liebe-geschäftspartnerinnen-und-geschäftspartner-activity-7011823421546237952-4zwV): Liebe Geschäftspartnerinnen und Geschäftspartner, liebe Freunde und Fans unserer Kanzlei, in Zeiten plötzlicher und grundlegender Veränderungen ist es umso wichtiger, eine zuverlässige, professione...\n...\n- [2021-08-01 · Dr. Ines Schmid shared this] [‼️🔥 rechtLICH goes Frankfurt 🔥‼️ 10 Jahre nach Gründung unserer...](https://www.linkedin.com/posts/dr-ines-schmid-bab835a2_lich-franfurtammain-osthafen-activity-6827546447509037056-mN3M): ‼️🔥 rechtLICH goes Frankfurt 🔥‼️ 10 Jahre nach Gründung unserer Kanzlei in #Lich ziehen wir heute nach #FranfurtamMain an den coolen #Osthafen in #Spaces #TheDocks -- das Gebäude, das von den Schif..."
+        ],
+        "image": "https://static.licdn.com/aero-v1/sc/h/9c8pery4andzj6ohjkjp54ma2",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/8nb7kntt900",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Dr. Ines Schmid",
+              "firstName": "Ines",
+              "lastName": "Schmid",
+              "location": "Frankfurt, Hesse, Germany",
+              "workHistory": [
+                {
+                  "title": "Inhaberin",
+                  "location": "Frankfurt am Main, Hessen, Germany",
+                  "dates": {
+                    "from": "2011-08-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Kanzlei rechtLICH"
+                  }
+                },
+                {
+                  "title": "Mitinhaberin und Gründerin",
+                  "location": null,
+                  "dates": {
+                    "from": "2016-06-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "SUKAwave"
+                  }
+                },
+                {
+                  "title": "Fachanwältin für Arbeitsrecht",
+                  "location": "Frankfurt am Main, Hessen, Germany",
+                  "dates": {
+                    "from": "2007-06-01",
+                    "to": "2011-06-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Unternehmerverband Frankfurt Rhein Main e.V."
+                  }
+                },
+                {
+                  "title": "Fachanwältin für Arbeitsrecht",
+                  "location": "Nürnberg, Bavaria, Germany",
+                  "dates": {
+                    "from": "2003-01-01",
+                    "to": "2007-05-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Rödl & Partner"
+                  }
+                },
+                {
+                  "title": "Fachanwältin für Arbeitsrecht",
+                  "location": "Leipzig, Saxony, Germany",
+                  "dates": {
+                    "from": "1997-07-01",
+                    "to": "2002-12-01"
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/5z90gjc3cdx",
+                    "name": "Luther Rechtsanwaltsgesellschaft mbH"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "Juristisches Staatsexamen, Rechtswissenschaften",
+                  "dates": {
+                    "from": "1990",
+                    "to": "1997"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Universität Regensburg"
+                  }
+                },
+                {
+                  "degree": "Schauspiel / Bühnenclown",
+                  "dates": {
+                    "from": "2012",
+                    "to": "2014"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Theater Transit"
+                  }
+                },
+                {
+                  "degree": "Executive Coach",
+                  "dates": null,
+                  "institution": {
+                    "id": null,
+                    "name": "FIRM GmbH"
+                  }
+                },
+                {
+                  "degree": "Master, Master of Mediation",
+                  "dates": null,
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/0qtw885mzf5",
+                    "name": "FernUniversität in Hagen"
+                  }
+                },
+                {
+                  "degree": "Wirtschaftsmediatorin",
+                  "dates": null,
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/0qtw885mzf5",
+                    "name": "FernUniversität in Hagen"
+                  }
+                },
+                {
+                  "degree": "Ersthelferin, Mental Health | Psychische Gesundheit",
+                  "dates": {
+                    "from": "2021",
+                    "to": "2021"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Zentralinstitut für Seelische Gesundheit"
+                  }
+                },
+                {
+                  "degree": "Ausbildung, Storytelling",
+                  "dates": null,
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/6bzvbdybjw6",
+                    "name": "Stuttgart Media University"
+                  }
+                },
+                {
+                  "degree": "Bachelor of Arts - BA, Kommunikationsdesign",
+                  "dates": {
+                    "from": "2023",
+                    "to": "2027"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/4xcb0bqbg4d",
+                    "name": "IU International University of Applied Sciences"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/5k1x00f0rv9",
+        "title": "Frank Schumann",
+        "url": "https://linkedin.com/in/frank-schumann-938ab333",
+        "publishedDate": "2026-09-10T06:43:17.000Z",
+        "highlights": [
+          "# Frank Schumann\n\nSCHUMANN Rechtsanwälte Notare\n...\nSCHUMANN Rechtsanwälte Notare\n...\n### Gründungspartner - SCHUMANN Rechtsanwälte Notare (Current)\n\nJan 2000 - Present (26 years and 8 months)\n\nAuf Immobilien- und Vergaberecht spezialisierte Rechtsboutique mit über zwanzig Rechtsanwälten, davon zwei Anwaltsnotaren in Berlin City West\n\nDepartment: General Management • Level: Partner"
+        ],
+        "image": "https://static.licdn.com/aero-v1/sc/h/9c8pery4andzj6ohjkjp54ma2",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/5k1x00f0rv9",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Frank Schumann",
+              "firstName": "Frank",
+              "lastName": "Schumann",
+              "location": "Berlin Metropolitan Area",
+              "workHistory": [
+                {
+                  "title": "Gründungspartner",
+                  "location": null,
+                  "dates": {
+                    "from": "2000-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "SCHUMANN Rechtsanwälte Notare"
+                  }
+                },
+                {
+                  "title": "Syndikus-Anwalt",
+                  "location": null,
+                  "dates": {
+                    "from": "1992-01-01",
+                    "to": "1996-01-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Commerzbank AG"
+                  }
+                },
+                {
+                  "title": "Syndikus-Anwalt",
+                  "location": null,
+                  "dates": {
+                    "from": "1990-01-01",
+                    "to": "1991-01-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Dresdner Bank AG"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "1. Staatsexamen, Jura",
+                  "dates": {
+                    "from": "1981",
+                    "to": "1986"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/cxk35ck0krc",
+                    "name": "Freie Universität Berlin"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/y2drj3ftp12",
+        "title": "Dr. Andreas Seegers",
+        "url": "https://linkedin.com/in/dr-andreas-seegers",
+        "publishedDate": "2026-10-07T09:31:07.000Z",
+        "highlights": [
+          "Geschäftsführender Gesellschafter bei Deutschlands führender Anwaltskanzlei für Inkasso und juristische Massenverfahren 👨⚖️\n\nStadt Hamburg, Hamburg, Germany (DE\n...\nMeine feste Überzeugung: Rechtsdienstleistung, Digitalisierung und Skalierung gehören zusammen! 👨‍⚖️ Genau daran arbeiten wir bei KSP täglich. Auf unsere Tech- und Legal-Expertise vertrauen Mandanten wie PayPal, Unilever und Xing. Unsere Kompetenz: Massenverfahren und Inkasso. Hier kommt unser von Anwält:innen geführtes Team erst so richtig in Fahrt. Als Deutschlands führende ­Anwalts­kanzlei für Inkasso und juristische Mengen­prozesse haben wir uns auf das anwaltliche Forderungsmanagement sowie die Beratung und Prozessführung in Massenverfahren spezialisiert – das hört im ersten Moment vielleicht trocken an, das ist es aber ganz und gar nicht! Wie wir das machen? Nicht nur mit Legal Tech! Bevor wir Tech-Tools entwickeln, designed unser Team die passenden Prozesse - und übersetzt diese dann in Technik. Mit unserer eigenen Software und Jahrzehnten an juristischer Expertise schaffen wir es komplexe Prozesse zu digitalisieren und zu automatisieren. Bei uns treffen erprobte Verfahren auf Mut für Wachstum und Neues! Um die neusten Trends abzudecken, bin ich im stetigen Austausch mit Entscheidern, Vordenkern und Impulsgebern der deutschen Wirtschaft. Das hilft mir neue Perspektiven einzunehmen und die richtigen Entscheidungen zu treffen. Und egal wie weit es mich in die Welt hinauszieht, schlägt mein Herz am höchsten für die schöne Hansestadt Hamburg, wo wir auch unseren KSP-Hauptsitz haben. Ich freue mich auf einen Austausch über … 🗣 … aktuelle Trends und Innovationen aus dem Bereich Payment & Debt. 🗣 … spannende Veränderungen im Forderungsmanagement. 🗣 … eure aktuellen Herausforderungen, die wir bei KSP gerne gemeinsam angehen können. 🗣 … Euch und Eure Skills und wie ihr diese bei KSP einbringen könnt. Du benötigst juristische Unterstützung bei der Abwicklung von Inkassoforderungen? Du interessierst dich für KSP? Dann schreibe mir doch direkt hier auf LinkedIn!\n...\n### [KSP Kanzlei Dr. Seegers, Dr. Frankenheim Rechtsanwaltsgesellschaft mbH](https://www.linkedin.com/company/ksp)\n\n#### Geschäftsführender Gesellschafter (Current)\n\nJan 2013 - Present (13 years and 9 months) in Hamburg, Free and Hanseatic City of Hamburg, Germany\n\nDepartment: General Management • Level: Partner\n\n#### Rechtsanwalt (Current)\n\nSep 2012 - Present (11 years) in Hamburg, Free and Hanseatic City of Hamburg, Germany\n\nDepartment: Legal • Level: Specialist\n\nKSP Kanzlei Dr. Seegers, Dr. Frankenheim Rechtsanwaltsgesellschaft mbH is a Law Practice company. KSP Rechtsanwälte is Germany's leading law firm for debt collection and legal quantity processes. KSP Kanzlei Dr. Seegers, Dr. Frankenheim Rechtsanwaltsgesellschaft mbH has 70-80 employees (+4-5% YoY), founded in 1959. Headquartered in Germany, with presence in United States. Its workforce is distributed across 9 countries (including Germany, India, United States, China, and Israel)."
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/D4E03AQFW_ob7lPNKCQ/profile-displayphoto-shrink_200_200/B4EZX75BADGgAc-/0/1743687782913?e=2147483647&v=beta&t=aLdbB78rgKu1ktiQ4qwZqigiwH8HRv1CS54g7q7nSfQ",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/y2drj3ftp12",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Dr. Andreas Seegers",
+              "firstName": "Andreas",
+              "lastName": "Seegers",
+              "location": "Stadt Hamburg, Hamburg, Germany",
+              "workHistory": [
+                {
+                  "title": "Geschäftsführender Gesellschafter",
+                  "location": "Hamburg, Free and Hanseatic City of Hamburg, Germany",
+                  "dates": {
+                    "from": "2013-01-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/1lf2l84451y",
+                    "name": "KSP Kanzlei Dr. Seegers, Dr. Frankenheim Rechtsanwaltsgesellschaft mbH"
+                  }
+                },
+                {
+                  "title": "Rechtsanwalt",
+                  "location": "Hamburg, Free and Hanseatic City of Hamburg, Germany",
+                  "dates": {
+                    "from": "2012-09-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/1lf2l84451y",
+                    "name": "KSP Kanzlei Dr. Seegers, Dr. Frankenheim Rechtsanwaltsgesellschaft mbH"
+                  }
+                },
+                {
+                  "title": "Member",
+                  "location": "Hamburg, Free and Hanseatic City of Hamburg, Germany",
+                  "dates": {
+                    "from": "2017-10-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/44sb3twrv02",
+                    "name": "Entrepreneurs'​ Organization"
+                  }
+                },
+                {
+                  "title": "Seed Investor",
+                  "location": "Hamburg, Free and Hanseatic City of Hamburg, Germany",
+                  "dates": {
+                    "from": "2018-11-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": "https://exa.ai/library/organization/ls4xb2jcz55",
+                    "name": "MOTOURISMO"
+                  }
+                },
+                {
+                  "title": "Referendar",
+                  "location": "Hamburg, Free and Hanseatic City of Hamburg, Germany",
+                  "dates": {
+                    "from": "2010-09-01",
+                    "to": "2010-11-01"
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "Freshfields Bruckhaus Deringer LLP"
+                  }
+                }
+              ],
+              "educationHistory": [
+                {
+                  "degree": "High School/Secondary Diplomas and Certificates, Junior",
+                  "dates": {
+                    "from": "1998",
+                    "to": "1999"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/m0pcd1x66y9",
+                    "name": "Fryeburg Academy"
+                  }
+                },
+                {
+                  "degree": "Fachspezifische Fremdsprachenausbildung Englisch, Jurastudium, allgemein",
+                  "dates": {
+                    "from": "2002",
+                    "to": "2004"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/6zg606xrqqd",
+                    "name": "University of Bayreuth"
+                  }
+                },
+                {
+                  "degree": "1. juristisches Staatsexamen, Jurastudium, allgemein",
+                  "dates": {
+                    "from": "2004",
+                    "to": "2008"
+                  },
+                  "institution": {
+                    "id": "https://exa.ai/library/organization/c3vjhthh49l",
+                    "name": "University of Münster"
+                  }
+                },
+                {
+                  "degree": "Internationale Ökonomie",
+                  "dates": {
+                    "from": "2000",
+                    "to": "2000"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Harvard Summer School"
+                  }
+                },
+                {
+                  "degree": "2. juristisches Staatsexamen, Juristische Berufe und Studien",
+                  "dates": {
+                    "from": "2009",
+                    "to": "2012"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Hanseatisches Oberlandesgericht Hamburg"
+                  }
+                },
+                {
+                  "degree": "Dr. iur., Schiedsgerichtsverfahren und einstweiliger Rechtsschutz",
+                  "dates": {
+                    "from": "2008",
+                    "to": "2013"
+                  },
+                  "institution": {
+                    "id": null,
+                    "name": "Bucerius Law School Hamburg"
+                  }
+                }
+              ],
+              "research": null
+            }
+          }
+        ]
+      },
+      {
+        "id": "https://exa.ai/library/person/99q2czxlmxt",
+        "title": "Almut Bühling",
+        "url": "https://linkedin.com/in/almut-buehling",
+        "publishedDate": "2026-09-13T20:20:27.000Z",
+        "highlights": [
+          "# Almut Bühling\n...\nPropert Law\n\nMunich, Bavaria, Germany (DE)\n...\nGründerin BSB Intellectual Property Law Rechtsanwältin Marken / Patente / Designs / Lizenzen Deutsche VdU-Repräsentantin für den Weltdachverband FCEM Mitglied im Vorstand der Internationalen Kommission des VdU\n...\n### Gründungspartnerin Founding Partner - BSB Rechtsanwälte / BSB Intellectual Property Law (Current)\n\nJun 2005 - Present (21 years and 3 months) in Munich, Bavaria, Germany\n\nIP Law Firm Markenrecht/Trademarks, Domains, Wettbewerbsrecht/Unfair Competition Law, Urheberrecht/Copyright, Design Recht, Lizenzverträge/License Agreements, Forschungs- und Entwicklungsverträge/R&D, Vertriebsverträge/Distribution Agreements, Know-How Verwertungsverträge, Patentrecht/Patent Litigation, prosecution and advice in all areas of IP law\n\nDepartment: General Management • Level: Partner\n...\n### Deutsche VdU-Repräsentantin für den Weltdachverband FCEM, Mitglied im Vorstand der Internationalen Kommission des VdU at Verband deutscher Unternehmerinnen"
+        ],
+        "image": "https://media.licdn.com/dms/image/v2/C4D03AQEhEv4Wyeqqrw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1607617129529?e=2147483647&v=beta&t=cqeNbFxWqB_5t8KJSGUOmcxDJEAURaqC-AWCQyHTnx8",
+        "entities": [
+          {
+            "id": "https://exa.ai/library/person/99q2czxlmxt",
+            "type": "person",
+            "version": 1,
+            "properties": {
+              "name": "Almut Bühling",
+              "firstName": "Almut",
+              "lastName": "Bühling",
+              "location": "Munich, Bavaria, Germany",
+              "workHistory": [
+                {
+                  "title": "Gründungspartnerin Founding Partner",
+                  "location": "Munich, Bavaria, Germany",
+                  "dates": {
+                    "from": "2005-06-01",
+                    "to": null
+                  },
+                  "company": {
+                    "id": null,
+                    "name": "BSB Rechtsanwälte / BSB Intellectual Property Law"
+                  }
+                }
+              ],
+              "educationHistory": [],
+              "research": null
+            }
+          }
+        ]
+      }
+    ],
+    "searchTime": 6074.1,
+    "costDollars": {
+      "total": 0.007,
+      "search": {
+        "neural": 0.007
+      }
+    }
+  }
+}

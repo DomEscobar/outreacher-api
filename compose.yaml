@@ -1,0 +1,68 @@
+name: ${COMPOSE_PROJECT_NAME:?Run provision.py configure first}
+services:
+  session:
+    build:
+      context: .
+      args:
+        HERMES_IMAGE: ${HERMES_IMAGE:?Run provision.py configure first}
+    image: ${COMPOSE_PROJECT_NAME:?Run provision.py configure first}:v6
+    environment:
+      DISCOVERY_ALLOWED_ORIGIN: ${DISCOVERY_ALLOWED_ORIGIN:?Run provision.py configure first}
+    init: true
+    stop_grace_period: 30s
+    shm_size: 1gb
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 512
+    mem_limit: 4g
+    cpus: 2
+    volumes:
+      - state:/opt/data
+      - ./skills:/opt/browser-box/skills:ro
+    networks: [private]
+  local:
+    image: ${CADDY_IMAGE:?Run provision.py configure first}
+    profiles: [local]
+    ports: ["127.0.0.1:${LOCAL_PORT:-19443}:443"]
+    volumes:
+      - ./.state/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [private]
+    depends_on:
+      session:
+        condition: service_healthy
+    security_opt: ["no-new-privileges:true"]
+  public:
+    image: ${CADDY_IMAGE:?Run provision.py configure first}
+    profiles: [public]
+    ports: ["${PUBLIC_BIND_PREFIX:-}${PUBLIC_PORT:-8443}:443"]
+    volumes:
+      - ./.state/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [private]
+    depends_on:
+      session:
+        condition: service_healthy
+    security_opt: ["no-new-privileges:true"]
+  acme:
+    image: ${CADDY_IMAGE:?Run provision.py configure first}
+    profiles: [acme]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./.state/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [private]
+    depends_on:
+      session:
+        condition: service_healthy
+    security_opt: ["no-new-privileges:true"]
+networks:
+  private:
+volumes:
+  state:
+  caddy_data:
+  caddy_config:
