@@ -79,7 +79,7 @@ class OverviewTests(unittest.TestCase):
         self.assertNotRegex(html, r'innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(')  # web data only via textContent
         # Every API path the page calls exists.
         paths = set(re.findall(r"'/api/v1/([a-z]+)", html))
-        self.assertEqual(paths, {'status', 'discoveries', 'leads', 'outreach', 'registry'})
+        self.assertEqual(paths, {'status', 'discoveries', 'leads', 'outreach', 'campaigns', 'actions', 'registry'})
 
 
 if __name__ == '__main__':

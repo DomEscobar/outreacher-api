@@ -2,6 +2,10 @@
 
 This workspace copy has not been deployed. The original source and live service are unchanged.
 
+**Agents: read [`AGENT-GUIDE.md`](AGENT-GUIDE.md) before calling any endpoint.** It contains the
+access rules (`Origin`, auth, body limits), the absolute read-only/challenge rules, the endpoint map,
+the outreach state machine, the error-handling matrix and the self-imposed rate limits.
+
 ## source="search" — fast search-engine discovery (no browser, no LinkedIn login)
 
 Same endpoints and job lifecycle as below (`POST /api/v1/discoveries`, poll `GET …/{id}`, cancel,
@@ -9,8 +13,8 @@ delete, `exclude_previous`). Implemented in `search_backend.py`; the browser age
 
 ```json
 {"source": "search", "keywords": ["Rechtsanwalt"], "titles": ["Partner", "Inhaber", "Geschäftsführer"],
- "locations": ["München", "Berlin"], "limit": 50, "include_review": false,
- "min_verification": "plausible", "expand_terms": true,
+ "locations": ["NRW", "München"], "limit": 50, "include_review": false,
+ "min_verification": "plausible", "expand_terms": true, "exclude_previous_companies": false,
  "budget": {"seconds": 900, "max_cost_usd": 0.5}}
 ```
 
@@ -18,18 +22,69 @@ delete, `exclude_previous`). Implemented in `search_backend.py`; the browser age
   `Zahnarztpraxis`); `titles` are the target roles and win over any built-in vocabulary (e.g. `CEO`,
   `Head of Sales`; German feminine forms are searched too). Without `titles` the target is decision makers
   of any kind (owner, partner, Geschäftsführer, founder, CEO/C-level, board, head of/director).
-  `locations` are plain place names.
+  `locations` are plain place names or regions (see below).
   `geo_urns`, `current_company_ids`, `network` and `search_url` are LinkedIn-agent inputs and are
   rejected here. `limit` may be up to 100 for this source (30 for the agent sources).
-- Pipeline: (1) Google results for `site:linkedin.com/in <keyword> <title> <location>`;
-  (2) an LLM reads each result title/snippet, and name, role, firm and sector quotes must be literal
-  substrings of that snippet; (3) the firm's own page or imprint is fetched (directories and
-  data brokers are never used as the firm website); (4) when the target is still short, firm imprints
-  in the location are mined for decision makers and their LinkedIn profiles are looked up.
-- `expand_terms` (default true): one LLM call proposes up to 4 related sector terms and up to 4 exact
-  equivalents of the requested titles (other wording/language, e.g. Head of Sales → Vertriebsleiter).
-  Equivalent titles are also accepted by the role check; originals are queried first for every location.
-  The terms used are reported as `expanded_keywords` / `expanded_titles`.
+- Pipeline, in rounds that stop as soon as `limit` counting leads are confirmed:
+  (1a) Google results for `site:linkedin.com/in <keyword> (<title> OR <titlein>) <location>`, twelve
+  queries per round, at most 80; (1b) people index: `exa.people.search` via treg (free-text query
+  "<titles> im Bereich <keyword> in <location>", one to three queries per round and 10 to
+  `DISCOVERY_PEOPLE_RESULTS`=25 profiles per call, sized to the leads still missing; $0.007 + $0.001 per
+  result beyond 10). Rounds alternate, Google first: where firms publish their teams the first Google
+  round usually reaches the target and the index is never paid for; in thin sectors the index follows
+  right after it instead of after the whole Google plan has used up the deadline.
+  `DISCOVERY_PEOPLE_SEARCH=first` starts with the index, `0` uses Google only;
+  (2) an LLM reads each profile text/snippet, and name, role, firm and sector quotes must be literal
+  substrings of it; (3) the firm's own page or imprint is fetched (directories and data brokers are never
+  used as the firm website); (4) when the target is still short, firm imprints in the location are mined
+  for decision makers and their LinkedIn profiles are looked up.
+- Every profile is read once per job, whichever strategy finds it first. Firm-website confirmation runs in
+  batches that shrink near the target, and a firm that already holds `max_per_company` leads is skipped
+  before any paid confirmation. Metadata: `strategies` (used, in order), `qualified_by_strategy`,
+  `people_queries`, `queries`.
+- People-index text is the profile's name, its current positions as dated by the index
+  ("Aktuelle Position: <title> – <firm>"), location and highlight lines (markdown links reduced to their
+  text); evidence from it has `source: "people_index"`. A quoted role or firm that the index dates only as
+  past is rejected (`stale_rejected`). After two failed index calls a job continues without it.
+- A website tier needs the website facts it rests on in the evidence: `verified` a firm-website quote
+  for the role, `plausible` firm-website quotes for the name and the firm (namesake or one-person firm).
+  A quote the LLM copied verbatim (up to case/whitespace) that matches no whole source line is kept as
+  quoted rather than dropped.
+- Query plan: original sector terms × requested titles first, then equivalent titles, then expanded
+  sector terms; inside each group the locations take turns, so neither the round order nor the 80-query
+  cap starves a location or an expanded term. Google returns about 10 rows per query (depth 10).
+- `expand_terms` (default true): one LLM call proposes up to 4 related sector terms, up to 4 exact
+  equivalents of the requested titles (other wording/language, e.g. Head of Sales → Vertriebsleiter) and
+  up to 8 facets (specialisations inside the sector, e.g. Arbeitsrecht, Familienrecht). Equivalent titles
+  are also accepted by the role check; facets only add queries ("Rechtsanwalt Arbeitsrecht (Partner OR
+  Partnerin) Köln", for the index "…, Schwerpunkt Arbeitsrecht, …") to reach other corners of the sector
+  and never widen a check. Reported as `expanded_keywords` / `expanded_titles` / `expanded_facets`.
+- Regions (`regions.py`): a German state, metro region or "Deutschland" in `locations` ("NRW",
+  "Nordrhein-Westfalen", "Bayern", "Ruhrgebiet", "Rhein-Main", …) is searched through its largest cities in
+  population order (NRW: Köln, Düsseldorf, Dortmund, … Münster); the people index is first asked for the
+  region as a whole. The location check still uses the requested area, so a firm elsewhere in the region
+  counts. Several entries take turns (Köln, München, Düsseldorf, …); other places stay as given.
+  Metadata: `regions`.
+- Every candidate keeps the place it was found in (the searched place its text names, else the place of
+  its query); firm-website lookups and the firm-first profile match use that place, not the first one
+  requested. Candidates are confirmed taking turns by place, so the first leads are not all from the
+  place searched first.
+- Time limits per call (seconds per attempt × attempts): Google 45 × 3, people index 60 × 2, firm page
+  30 × 2, LLM 120 × 3, and no attempt runs past the job deadline, so one hanging firm site cannot stall a
+  confirmation batch (it used to be 120 s × 4 per page). Metadata `call_seconds` shows calls, total and
+  slowest seconds per kind.
+- Memory across runs (`search_memory.py`, private `search_memory.sqlite3`, 0600, 90 days; only with
+  `exclude_previous: true`): per criteria (sector terms, titles, locations, `min_verification`) it keeps
+  the queries run with the number of results still open at the end, and SHA-256 keys of profiles and firm
+  imprints already decided (rejected at classification, checked below the target tier, delivered, imprint
+  read). A repeat search skips decided people and imprints without paying for them again
+  (`skipped_known`), brings back open candidates (not yet checked, or counting but beyond the limit), and
+  moves queries that left nothing open behind fresh ones
+  (`demoted_queries`), so facets, further places and expanded terms come first. Queries are stored as run;
+  no names, quotes or profile URLs. Other criteria start fresh; the evaluation set never uses it.
+- `exclude_previous_companies` (default false): also skip every firm already in the shared registry, even
+  if only delivered before (`excluded_known_company`); by default only persons are excluded across runs
+  and a firm can return with another person.
 - `min_verification` sets the lowest tier that counts toward `limit`: `verified`, `plausible` (default) or
   `linkedin` (useful for tech companies or corporate roles that company websites rarely list).
 - Every lead has `verification`: `verified` = a target title stands next to the person's name on the
@@ -39,13 +94,25 @@ delete, `exclude_previous`). Implemented in `search_backend.py`; the browser age
   above `min_verification` count toward `limit`; the others are returned only with
   `include_review: true`. Evidence items carry `source` (`search_snippet` or `firm_website`); quotes
   are exact source lines (case/whitespace normalised). `company` prefers the legal name from the imprint.
-- The LinkedIn association rests on the search index (name in the profile title, plus firm or place
-  in the snippet), not on a logged-in profile view; `identity_status` is `verified` only when the
-  firm website confirmed the role and the snippet names the firm. Human review stays required.
-- Budget: `seconds` is the job deadline; `max_cost_usd` caps provider + LLM spend (treg charges and
-  OpenRouter `usage.cost`); in-flight parallel calls may overshoot by a few cents at most. On a
-  stop the job returns `partial` with `stop_reason` `timed_out`/`budget_exhausted`; metadata reports
-  `cost_usd`, `provider_calls`, `llm_calls`, `verification_counts`, `strategies`.
+- The LinkedIn association rests on the search/profile index (name in the profile title, plus firm or
+  place in the snippet), not on a logged-in profile view; `identity_status` is `verified` only when the
+  firm website confirmed the role and the snippet names the firm as its own word (the person's surname
+  inside the name line does not count; a namesake firm such as "Müller Rechtsanwälte" must appear beside
+  the name). Firm-first leads whose profile matched by name and place only are capped as possible
+  namesakes: at most `plausible` when the snippet also has a sector term, else `review`.
+  Human review stays required.
+- Budget: `seconds` is the job deadline; `max_cost_usd` caps provider + LLM spend (treg charges from
+  `_treg.charged_micro` or the `X-Treg-Cost-Micro` header, Exa `costDollars`, OpenRouter `usage.cost`);
+  in-flight parallel calls may overshoot by a few cents at most. On a stop the job returns `partial` with
+  `stop_reason` `timed_out`/`budget_exhausted`; metadata reports `cost_usd`, `provider_calls`,
+  `llm_calls`, `verification_counts`, `strategies`.
+- Provider failures are never read as "nothing found": every failed call is counted in
+  `provider_errors` as `<treg|openrouter>_<http_<status>|network|invalid_response>` (e.g.
+  `treg_http_402` = treg balance used up, `openrouter_http_402` = OpenRouter credits). Payment
+  required (402) anywhere, or five failed search/LLM calls in a row, stop the job with
+  `stop_reason: provider_error` (job `failed`, `error: provider_error` when nothing was found yet).
+  Failed page fetches (e.g. a missing `/impressum`) only count. 401/403 on search or LLM calls still mean
+  `search_not_configured`.
 - Configuration (private volume, never in results or logs): `TREG_TOKEN` (store it with
   `docker compose exec session python3 /opt/browser-box/discovery-api/search_backend.py set-token`,
   masked prompt) and the existing `OPENROUTER_API_KEY` in `HERMES_HOME/.env`; optional
@@ -55,6 +122,23 @@ delete, `exclude_previous`). Implemented in `search_backend.py`; the browser age
 - Measured once on 2026-10-14 (Munich, lawyers, prototype of this pipeline): 18 verified +
   5 plausible of 28 leads, all 23 correct on manual review, about USD 0.025 and 90 s. One city, small
   sample: treat as an indication, not a guarantee of yield or precision.
+- Evaluation set (`eval_search.py`, cases in `eval_cases.json`: lawyers, tax advisers and software firms
+  in München and Hamburg, 10 leads each, at most $0.40 per case). Inside the appliance:
+  `python3 /opt/browser-box/discovery-api/eval_search.py plan` (cases and maximum spend, no calls), then
+  `… eval_search.py run --max-total-usd 1.5` (paid) writes `leads.jsonl`, `summary.json` and `review.csv`
+  to a new private directory under `/opt/data/discovery-api/eval/` (0700/0600). Fill `person_ok`,
+  `role_ok`, `sector_ok`, `location_ok` with y/n, then `… eval_search.py score <dir>` reports precision per
+  verification tier, per strategy and per case, plus yield and cost per qualified lead. Runs bypass the job
+  store and the registry (nothing is recorded as delivered, nothing excluded). Lead rows stay private.
+- Measured 2026-10-21 with this set, once per case and order, before manual review (yield and cost only,
+  precision not yet labelled): index first: 60/60 leads, $0.59, 48 verified + 12 plausible counting;
+  Google only: lawyers and tax advisers 40/40 for $0.18 (36 verified), software München 6/10 when the
+  600 s deadline ended, software Hamburg stopped by `treg_http_402` (balance used up). Hence the default:
+  Google first, index in alternating rounds.
+- Measured 2026-10-21 with `--repeat 2` (memory, second run excluding the first run's leads), "NRW":
+  lawyers 10 + 10 leads, $0.035 + $0.056, 244 s + 165 s, 35 people skipped in run 2; software 10 + 10,
+  $0.046 + $0.045, 365 s + 138 s, 26 skipped, the index added 2 in run 2. No person and no firm in both
+  runs. Before the call time limits, lawyers run 2 had stalled at 2 leads in 627 s.
 - Not established by this source: current employment beyond the fetched pages, contact permission
   (UWG §7) or a GDPR basis for processing. Fetched page text is transient and not persisted.
 
@@ -102,36 +186,161 @@ outreach contacts are imported once at startup.
 
 ## Outreach — connect first, research and write after acceptance
 
-Implemented in `outreach.py`. Nothing is sent, typed or clicked on LinkedIn; all texts are drafts.
+Implemented in `outreach.py` (bookkeeping/research) and `connect.py` (the one mutation: the connection
+request). Messages after acceptance are drafts; the box never sends them.
 
 ```json
 POST /api/v1/outreach
 {"linkedin_url": "https://www.linkedin.com/in/…", "company_website": "https://firma.de/",
  "topic": "KI-Automationen", "template": "Kurz, Sie-Form, ein konkreter Bezug, Frage nach 15-Minuten-Call",
- "note_template": "optional guidance for the connection note", "connection_note": true,
- "note_max_chars": 200, "message_max_chars": 1200, "language": "de", "budget": {"max_cost_usd": 0.15}}
+  "note_template": "optional guidance for the connection note", "connection_note": true,
+  "note_max_chars": 200, "message_max_chars": 1200, "language": "de", "auto_connect": true,
+  "budget": {"max_cost_usd": 0.15}}
 ```
 
 - `linkedin_url` (any LinkedIn host, canonicalised) and `company_website` or `company_name` are required.
   One contact per profile (`409 outreach_exists` with its id).
 - 201 → `status: awaiting_connection`, `name`/`headline` from the search index and an optional
-  `connection_note` (topic is context only, no pitch). Send the request yourself.
-- Background check (`OUTREACH_CHECK_HOURS`=24, `OUTREACH_DAILY_CHECKS`=40, 20–60 s between views):
+  `connection_note` (topic is context only, no pitch). With `auto_connect` (default
+  `OUTREACH_AUTO_CONNECT=1`) the background worker immediately sends the connection request with that
+  note; `connect.state` (`not_sent` → `sending` → `sent`/`failed`) reports it. With
+  `auto_connect: false` the state stays `manual` and the note is only a draft.
+- Connection requests (`connect.py`, the only module allowed to click): one profile at a time in a
+  background tab via CDP, "Vernetzen"/"Connect", optional "Notiz hinzufügen" + "Senden". Hard stops:
+  daily cap `OUTREACH_CONNECT_DAILY_CAP`=15, weekly cap `OUTREACH_CONNECT_WEEKLY_CAP`=60, irregular
+  spacing `OUTREACH_CONNECT_SPACING`=`90-240` s, a randomized `OUTREACH_CONNECT_DWELL`=`3-9` s on the
+  profile before clicking, working-hours window, and any challenge/rate-limit/login page pauses everything
+  for `OUTREACH_BLOCK_PAUSE_HOURS`/`LOGIN_PAUSE_HOURS` (persisted). An exhausted invitation allowance
+  (`Einladungslimit`, `weekly invitation limit`) pauses for `OUTREACH_LIMIT_PAUSE_HOURS`=72. Unknown UI
+  (button not found, modal not opened, no send button) is retried up to `OUTREACH_CONNECT_ATTEMPTS`=3
+  times with `OUTREACH_CONNECT_RETRY_HOURS`=6, then `connect.state: failed` with `connect.error: connect_*`.
+  There is deliberately **no** fingerprint spoofing, CAPTCHA solving, mouse/keystroke simulation, proxy
+  rotation or rate-limit circumvention: the box stays within human-scale limits and stops honestly.
+  `POST /api/v1/outreach/{id}/connect` retries a failed/manual request once; the rate/UI patterns are
+  tested on synthetic pages only, so calibrate on a real profile before relying on it.
+- `awaiting_connection` is the workflow stage (connect first); the observed profile state is
+  `connection.state`, which stays `unknown` until the first check. `connect.state` says whether the box
+  sent the request.
+- `POST /api/v1/outreach/{id}/check-connection` checks the profile status now, read-only: one look at the
+  public profile, nothing sent/connected/messaged. It ignores the schedule and the daily cap (a deliberate
+  user action), uses the shared browser lock, and on a login wall pauses background checks and reports
+  `login_required`. For a contact already `sent`/`replied`/`do_not_contact` it is a no-op (the connection
+  question is settled). The UI exposes it as the "Profilstatus prüfen" button in the contact's Verbindung
+  panel, with each state labelled: `not_connected` (no request visible), `pending` (request outstanding),
+  `connected` (already connected), `unknown` (not yet checked / not readable), `login_required`.
+- Background check (`OUTREACH_CHECK_HOURS`=24, `OUTREACH_DAILY_CHECKS`=10,
+  `OUTREACH_PROFILE_SPACING`=`120-300` seconds between views; the whole
+  loop is off when `OUTREACH_BACKGROUND=0`, and `check-connection` is then the only way to update the state):
   the profile is opened in a background tab of the shared Chromium via CDP, only the top card text
   is read, the tab is closed (`Target.createTarget/attachToTarget`, `Page.navigate`,
   `Runtime.evaluate`, `Target.closeTarget`; no `Input.*`). States: `pending`, `not_connected`,
-  `connected`, `login_required` (pauses all checks for 6 h until a human logs in via noVNC).
-  Checks never overlap a browser-agent discovery job (shared lock). After `OUTREACH_EXPIRE_DAYS`=30
-  without acceptance → `expired`. `POST /api/v1/outreach/{id}/accepted` starts research manually.
+  `connected`, `login_required` (pauses checks until a human logs in via noVNC).
+  A challenge/rate-limit/restriction page (`unusual activity`, `rate limit`, `/checkpoint/challenge`, …)
+  pauses everything for `OUTREACH_BLOCK_PAUSE_HOURS`=12. The pause is stored in `meta.paused_until`, so a
+  container restart does not resume reads against a challenged session; `POST /api/v1/outreach/resume`
+  clears it after a human logged in. Checks never overlap a browser-agent discovery job (shared lock).
+  After `OUTREACH_EXPIRE_DAYS`=30 without acceptance → `expired`.
+  `POST /api/v1/outreach/{id}/accepted` marks it connected manually.
   Each check is a normal profile view by your account (visible to the person). The connection-state
   patterns were tested on synthetic text only; calibrate them once on real profiles before relying on them.
 - After acceptance (`researching` → `ready`): the firm website, linked service/team/career/news pages
   (same host, up to 5) are fetched via treg; the LLM returns up to 5 `findings` (`need`, `where`,
   verbatim `quote`, `url`) — findings whose quote is not literally on the fetched page are dropped —
   and a `message` draft following `template`. `error: research_thin` when no finding survived.
+- Reply check (`replied`): while contacts in `ready` or `sent` wait for an answer, at most every
+  `OUTREACH_REPLY_CHECK_HOURS` (12, never less) and at most `OUTREACH_INBOX_DAILY_CAP`=2 times per local
+  calendar day the box opens `https://www.linkedin.com/messaging/` in a background tab of the shared
+  Chromium and reads the visible
+  text of the first 40 rows of the conversation list (same CDP calls as the profile check: no thread is
+  opened, no clicks, no typing, no scrolling). A conversation whose preview does not start with "Sie:" /
+  "You:" ends with their message; when its name matches exactly one waiting contact (first and last name,
+  titles ignored), that contact becomes `replied` with `reply: {detected_at, source: "inbox",
+  previous_status}`. An answer to the connection note (status `ready`) counts too. Names shared by two
+  contacts or two conversations, and contacts without a known name, are left to the human. The list's
+  text (names and previews of every conversation, including people not in outreach) stays in memory for
+  that check and is never stored, logged or returned.
+  All automated reads are confined to `OUTREACH_ACTIVE_HOURS`=8–20 local time (set `TZ`/`BROWSER_TZ`,
+  default `Europe/Berlin`); outside it work is deferred to the next window plus a random offset.
+  An empty or unreadable conversation list is treated as a failed look and backs off exponentially
+  (12 h → 24 h → 48 h) instead of retrying twice a day forever. A login wall pauses for 6 h, a
+  challenge/rate-limit page (`OUTREACH_BLOCK_PAUSE_HOURS`=12) for 12 h; both are persisted across
+  restarts and cleared by `POST /api/v1/outreach/resume` after a human logs in via noVNC. Nothing tries
+  to get around a wall. `OUTREACH_REPLY_CHECK=0` turns the check off.
+- `POST /api/v1/outreach/{id}/replied` marks an answer by hand; `POST /api/v1/outreach/{id}/no-reply`
+  undoes a wrong one (back to the previous status). Known false positive: an older conversation with that
+  person where they wrote last. `/api/v1/status` reports `reply_check_enabled`, `last_inbox_check`,
+  `next_inbox_check`, `inbox_reads_today`, `paused_until`, `connect_enabled`, `connect_last_24h` and
+  `connect_daily_cap`.
+- Calibrate once on the real page after logging in:
+  `docker compose exec session python3 /opt/browser-box/discovery-api/outreach.py inbox-check` prints counts
+  only (rows read, conversations, last message ours/theirs, contacts waiting, contacts with a reply) and
+  changes nothing. If `rows_read` is 0 while the inbox has conversations, LinkedIn's markup differs from
+  the expected thread links and the check finds no replies until it is adapted. The markup handling was
+  tested on a synthetic page in headless Chromium, not on LinkedIn.
+- This reads your own inbox by automation, which LinkedIn's terms do not allow; the account risk stays
+  with you. The check keeps to what a person does and makes no attempt to disguise automation.
 - `GET /api/v1/outreach/{id}`, `GET /api/v1/outreach?status=ready`, `DELETE /api/v1/outreach/{id}`.
   Records (incl. template) stay in the private `outreach.sqlite3` (0600) for 180 days.
 - Legal: drafts do not establish consent; LinkedIn's terms and UWG/GDPR duties stay with the sender.
+
+## Agent API: actions, events, campaigns, webhooks
+
+These endpoints are built for an external agent (or the UI) to act proactively without polling every list.
+All of them carry ids/statuses only; names, URLs and message text stay in the existing records.
+
+**Actions** — `GET /api/v1/actions?kind=&limit=`
+An ordered next-best-action list: `fix_session` (paused browser), `send_connection` (failed/manual),
+`check_acceptance` (due), `retry_research` (failed), `review_message` (ready draft), `handle_reply`,
+`review_expired`, `review_job`, `review_campaign`. Each item has `priority`, `why`, `actor`
+(`agent` may call the endpoint, `human` must decide/send) and `suggested_call`. The list never triggers
+work by itself.
+
+**Events** — `GET /api/v1/events?since=<cursor>&limit=`
+Change feed over outreach, discovery, campaign and pause/resume state. Use `next_cursor` as the next
+`since`. Boundary items are not repeated (`updated_at > since`); poll at most every 10 s, back off to
+60 s. Payload: `{type, ref_id, status, updated_at, campaign_id?, connect?, connection?, error?}`.
+
+**Campaigns** — `POST /api/v1/campaigns`, `GET /api/v1/campaigns`, `GET /{id}`,
+`POST /{id}/pause|resume|cancel`, `DELETE /{id}`.
+A campaign runs one discovery job (`criteria`), then creates one outreach contact per qualified lead
+that passes the registry, respecting `max_contacts`, then the normal worker connects, waits for
+acceptance, researches and drafts. `status`: `queued` → `discovering` → `outreaching` →
+`awaiting_review` (all automation done, drafts exist) or `done`; plus `paused`, `failed`, `cancelled`.
+`counts`/`connect_counts`/`cost_usd` are the campaign funnel. Contacts carry `campaign_id`; filter with
+`GET /api/v1/outreach?campaign_id=…`. Pausing stops further fan-out; cancelling also cancels the
+discovery job. Blocked registry people are skipped, never overridden.
+
+**Review edits** — `PATCH /api/v1/outreach/{id}` with `connection_note`, `message` or `topic`.
+It only edits the draft (note only before the request was sent, message only from `researching` on) and
+never sends anything.
+
+**Webhooks** — `POST /api/v1/webhooks {url, secret?, events?}`, `GET /api/v1/webhooks`,
+`DELETE /api/v1/webhooks/{id}`.
+Only public `https` endpoints. The secret is returned once (or supplied by you, min. 16 chars). Delivery:
+POST JSON `{"events":[…]}` with `X-Hermes-Signature: sha256=<HMAC-SHA256 over the raw body>`; no
+redirects; retries with exponential backoff; a cursor per webhook avoids duplicates. Private/loopback
+targets are refused at delivery.
+
+
+
+### Operating limits that actually reduce block risk
+
+- **One stable IP per account session.** Do not rotate residential proxies while logged in: an IP change
+  mid-session is itself a checkpoint trigger. A datacenter IP is worse than a stable residential one, but
+  rotating is worse than both. Log in from the place the box normally egresses from.
+  Configure a dedicated static residential/ISP endpoint with `BROWSER_PROXY` (IP-whitelisted at the
+  provider; Chromium cannot use `user:password` in `--proxy-server`). When set, the browser also gets
+  `--force-webrtc-ip-handling-policy=disable_non_proxied_udp`. See the root README for verification steps.
+- **Never solve or bypass a CAPTCHA/challenge.** Stop, wait out the pause, and log in by hand via noVNC if
+  needed. Do not export/replay cookies between environments; the persistent Chromium profile is the
+  supported (and safer) path.
+- **Environment parity.** `TZ` (default `Europe/Berlin`) and `BROWSER_LANG` (default `de-DE`) are set for
+  the container/browser, and fonts (`fonts-liberation`, `fonts-noto-color-emoji`) are installed so the
+  server looks like a normal desktop. Do not fake a Windows UA on a Linux kernel: the mismatch is a
+  stronger signal than the honest Linux UA.
+- **Volume.** 10 profile views/day, at most 2 inbox looks/day, irregular 2–5 min spacing, working hours
+  only. The forum advice of "80 requests/hour" or "100 actions/day" is scraping advice and will get a
+  logged-in account limited.
 
 ## v2 resilience and bounded research
 

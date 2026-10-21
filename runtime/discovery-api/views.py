@@ -53,6 +53,15 @@ class OutreachHealth(Strict):
     daily_cap: int
     background_enabled: bool
     paused_until: float | None = None
+    reply_check_enabled: bool = False
+    last_inbox_check: float | None = None  # last read of the inbox's conversation list (reply check)
+    next_inbox_check: float | None = None  # earliest next look (working hours, jitter, backoff)
+    inbox_reads_today: int = 0
+    connect_enabled: bool = False
+    connect_last_24h: int = 0
+    connect_daily_cap: int = 0
+    connect_last_7d: int = 0
+    connect_weekly_cap: int = 0
 
 
 class SystemStatus(Strict):
@@ -62,6 +71,8 @@ class SystemStatus(Strict):
     leads_total: int
     outreach: OutreachHealth
     registry: dict[str, int] = Field(default_factory=dict)
+    campaigns: dict[str, int] = Field(default_factory=dict)
+    webhooks: int = 0
     time: float
 
 
@@ -104,7 +115,7 @@ def lead_rows(store, outreach_store, verification=None, q=None, limit=500, regis
     return rows
 
 
-def system_status(store, service, registry=None):
+def system_status(store, service, registry=None, campaign_store=None, webhook_store=None):
     treg, openrouter = bool(sb.env_value('TREG_TOKEN')), bool(sb.openrouter_key())
     jobs = store.list(limit=100000)
     leads = len({profile_key(l['linkedin_url']) for j in jobs if j['result'] for l in json.loads(j['result']).get('leads') or []})
@@ -118,7 +129,17 @@ def system_status(store, service, registry=None):
         queue={s: sum(j['status'] == s for j in jobs) for s in ('queued', 'running')},
         jobs_total=len(jobs), leads_total=leads,
         registry=dict(Counter(e['status'] for e in registry.list(limit=1_000_000))) if registry else {},
+        campaigns=dict(Counter(c['status'] for c in campaign_store.list(limit=10000))) if campaign_store else {},
+        webhooks=len(webhook_store.list(active_only=True)) if webhook_store else 0,
         outreach=OutreachHealth(counts=counts, checks_last_24h=service.store.checks_since(time.time() - 86400),
                                 daily_cap=o.DAILY_CHECK_CAP, background_enabled=service.thread.is_alive(),
-                                paused_until=paused),
+                                paused_until=paused, reply_check_enabled=o.REPLY_CHECK and service.thread.is_alive(),
+                                last_inbox_check=service.store.meta('last_inbox_check'),
+                                next_inbox_check=service.store.meta('next_inbox_check'),
+                                inbox_reads_today=service.inbox_reads_today(time.time()),
+                                connect_enabled=service.connector is not None and service.thread.is_alive(),
+                                connect_last_24h=service.store.connects_since(time.time() - 86400),
+                                connect_daily_cap=o.CONNECT_DAILY_CAP,
+                                connect_last_7d=service.store.connects_since(time.time() - 7 * 86400),
+                                connect_weekly_cap=o.CONNECT_WEEKLY_CAP),
         time=time.time()).model_dump()

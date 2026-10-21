@@ -4,7 +4,7 @@ from models import Strict, Lead
 
 ErrorCode = Literal['timed_out', 'cancelled', 'output_limit', 'prompt_limit', 'invalid_stream',
                     'invalid_backend_result', 'invalid_result_schema', 'backend_exit',
-                    'turn_limit', 'backend_failed', 'procedure_unavailable', 'search_not_configured']
+                    'turn_limit', 'backend_failed', 'procedure_unavailable', 'search_not_configured', 'provider_error']
 
 
 class IterationMetadata(Strict):
@@ -48,12 +48,18 @@ class ResultMetadata(Strict):
     stop_reason: Literal['target_reached', 'blocked', 'search_exhausted', 'timed_out',
                          'cancelled', 'output_limit', 'prompt_limit', 'invalid_stream',
                          'invalid_backend_result', 'invalid_result_schema', 'backend_exit',
-                         'turn_limit', 'backend_failed', 'procedure_unavailable', 'budget_exhausted'] | None = None
+                         'turn_limit', 'backend_failed', 'procedure_unavailable', 'budget_exhausted',
+                         'provider_error'] | None = None
     # source=search accounting (provider + LLM spend, tiers, strategies used)
     verification_counts: dict[Literal['verified', 'plausible', 'linkedin', 'review'], int] = Field(default_factory=dict)
     min_verification: Literal['verified', 'plausible', 'linkedin'] | None = None
     expanded_keywords: list[str] = Field(default_factory=list, max_length=10)
     expanded_titles: list[str] = Field(default_factory=list, max_length=10)
+    expanded_facets: list[str] = Field(default_factory=list, max_length=10)  # specialisations searched, queries only
+    regions: list[str] = Field(default_factory=list, max_length=20)  # locations resolved to their largest cities
+    skipped_known: int = Field(default=0, ge=0)  # profiles/imprints decided in an earlier run with these criteria
+    demoted_queries: int = Field(default=0, ge=0)  # queries that found nothing new last time, moved to the end
+    excluded_known_company: int = Field(default=0, ge=0)  # exclude_previous_companies: firms already in the registry
     excluded_by_registry: int = Field(default=0, ge=0)   # companies blocked in the shared registry
     excluded_same_company: int = Field(default=0, ge=0)  # over max_per_company in this run
     max_per_company: int | None = None
@@ -61,9 +67,16 @@ class ResultMetadata(Strict):
     cost_usd: float | None = Field(default=None, ge=0)
     provider_calls: int = Field(default=0, ge=0)
     llm_calls: int = Field(default=0, ge=0)
+    # Failed provider calls by <treg|openrouter>_<http_<status>|network|invalid_response>, e.g. treg_http_402.
+    provider_errors: dict[str, int] = Field(default_factory=dict)
+    # Time per call kind (serp, people, extract, llm): {'calls', 'seconds', 'max_seconds'}.
+    call_seconds: dict[str, dict[str, float]] = Field(default_factory=dict)
     queries: int = Field(default=0, ge=0)
+    people_queries: int = Field(default=0, ge=0)
+    stale_rejected: int = Field(default=0, ge=0)  # role/firm the people index dates as past
     firms_checked: int = Field(default=0, ge=0)
-    strategies: list[Literal['linkedin_search', 'firm_websites']] = Field(default_factory=list, max_length=2)
+    strategies: list[Literal['people_search', 'linkedin_search', 'firm_websites']] = Field(default_factory=list, max_length=3)
+    qualified_by_strategy: dict[Literal['people_search', 'linkedin_search', 'firm_websites'], int] = Field(default_factory=dict)
     human_review_required: Literal[True] = True
     evidence_validation: Literal['verbatim_observed_tool_output', 'verbatim_fetched_source_text']
     fit_reason_is_inference: Literal[True]

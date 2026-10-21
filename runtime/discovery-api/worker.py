@@ -176,8 +176,8 @@ class HermesBackend:
 
 
 class Worker:
-    def __init__(self, store, backend=None, search_backend=None, browser_lock=None, registry=None):
-        self.store, self.backend, self.registry = store, backend or HermesBackend(), registry
+    def __init__(self, store, backend=None, search_backend=None, browser_lock=None, registry=None, memory=None):
+        self.store, self.backend, self.registry, self.memory = store, backend or HermesBackend(), registry, memory
         self.search_backend = search_backend or SearchBackend()
         self.browser_lock = browser_lock or threading.Lock()
         self.stop = threading.Event()
@@ -219,8 +219,10 @@ class Worker:
     def process_search(self, row, criteria, previous):
         try:
             previous, snap = self.registry_view(criteria, previous)
+            # Cross-run memory only when earlier results are excluded anyway: then a repeat search digs further.
+            memory = self.memory.view(criteria) if self.memory and criteria.exclude_previous else None
             qualified, review, stats = self.search_backend.run(criteria, previous,
-                lambda: self.stop.is_set() or self.store.cancelled(row['id']), snap)
+                lambda: self.stop.is_set() or self.store.cancelled(row['id']), snap, memory)
             status = 'succeeded' if len(qualified) >= criteria.limit else 'partial'
             payload = render_search(criteria, qualified, review, stats)
             self.store.finish(row['id'], status, payload)

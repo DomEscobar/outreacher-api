@@ -272,7 +272,8 @@ class Registry:
                 'person': self.entry(person) if person else None, 'company': company}
 
     def snapshot(self):
-        """For a search run: known persons, persons with a blocking status, blocked company domains and name keys."""
+        """For a search run: known persons, persons with a blocking status, blocked company domains and name
+        keys, and every known company (any status, for exclude_previous_companies)."""
         self.cleanup()
         with self.connect() as db:
             rows = db.execute('SELECT profile, domain, name_key, status FROM registry').fetchall()
@@ -280,7 +281,9 @@ class Registry:
         return {'people': {r['profile'] for r in rows if r['profile']},
                 'blocked_people': {r['profile'] for r in blocked if r['profile']},
                 'domains': {r['domain'] for r in blocked if r['domain']},
-                'names': {r['name_key'] for r in blocked if r['name_key']}}
+                'names': {r['name_key'] for r in blocked if r['name_key']},
+                'known_domains': {r['domain'] for r in rows if r['domain']},
+                'known_names': {r['name_key'] for r in rows if r['name_key']}}
 
     def backfill(self, delivered_profiles, outreach_records, delivered_leads=()):
         """Idempotent import of data that predates the registry (company fields from stored job results)."""

@@ -3,6 +3,11 @@
 This v6 working copy is not claimed published in Brain or deployed. Brain canonical
 source remains v4; inherited test reports describe earlier versions, not v6 proof.
 
+**Agents must read [`AGENTS.md`](AGENTS.md) and
+[`runtime/discovery-api/AGENT-GUIDE.md`](runtime/discovery-api/AGENT-GUIDE.md) first.** The box is
+read-only on LinkedIn apart from the one connection request it sends per contact, and it stops at every
+challenge instead of evading it.
+
 ## Try on your own PC
 
 ```sh
@@ -63,7 +68,42 @@ The final URL includes the chosen port, for example `https://vps.example.org:844
 6. Optionally configure tool-provider credentials. Reapply shared local-browser settings and enable browser/web/terminal/file/skills.
 7. Show the URL and trust/firewall caveats; optionally launch Hermes.
 
-Log into LinkedIn and complete 2FA manually in the remote browser while Hermes pauses. Login/containerization is not authorization for scraping, mass extraction or outreach. No automatic messages are sent.
+Log into LinkedIn and complete 2FA manually in the remote browser while Hermes pauses. Login/containerization is not authorization for scraping, mass extraction or outreach. No automatic messages are sent; the box sends only the connection request (paced, capped, paused on any challenge).
+
+Automated reads stay low-volume and human-shaped: working hours only (`BROWSER_TZ`, default
+`Europe/Berlin`; `BROWSER_LANG`, default `de-DE`), at most 2 inbox looks and 10 profile views per day,
+irregular spacing, and a restart-safe pause at any login wall, CAPTCHA or rate-limit page
+(`POST /api/v1/outreach/resume` after a human logs in). Use one stable residential IP per account session;
+never rotate proxies mid-session, replay cookies across environments or solve challenges automatically.
+
+## Residential egress (recommended)
+
+Agent-runnable checklist with the exact commands: [`AGENTS.md`](AGENTS.md#vps-residential-egress--one-time-setup-agent-runnable).
+
+1. Buy a **dedicated static residential / ISP endpoint** (not a rotating pool) in the account's
+   country. One endpoint per LinkedIn account. Rotating residential is wrong for a logged-in session:
+   an IP change is itself a checkpoint trigger.
+2. Whitelist the VPS public IP at the provider, so no proxy password is needed. Chromium's
+   `--proxy-server` does not accept `user:password`.
+3. Add to `.env` (never commit it):
+   ```sh
+   BROWSER_PROXY=http://gateway.provider.example:1234
+   BROWSER_TZ=Europe/Berlin
+   BROWSER_LANG=de-DE
+   ```
+   Or let the helper do it: `python3 setup_proxy.py` prints this VPS's public IP (for the
+   whitelist), tests the endpoint, writes `.env`, and with `--apply` recreates and verifies the
+   session container.
+4. Recreate the session container so the values reach it
+   (`python3 provision.py stop` then your usual `up-...` command, or `docker compose up -d session`).
+5. Verify from the box: `docker compose exec session curl -s -x "$BROWSER_PROXY" https://ifconfig.me`
+   and open `https://browserleaks.com/ip` in the noVNC browser. The IP must be the residential one,
+   with no WebRTC/real-IP leak, and must stay the same across restarts.
+6. If the provider requires credentials, run a small local forwarder (for example `gost` or `3proxy`)
+   in the container and set `BROWSER_PROXY=http://127.0.0.1:3128`; keep the credentials out of the
+   browser URL. For a fully transparent tunnel (all container traffic, including DNS), use WireGuard
+   on the host or a proxy sidecar instead.
+7. If the egress IP changes, treat it like a new device: log in manually via noVNC, then resume slowly.
 
 ## Commands
 
@@ -126,16 +166,18 @@ For a noVNC Connecting/Failed to connect state, inspect backend logs and test a 
 
 ## On-demand Discovery API / v6 working source
 
-The same authenticated HTTPS origin now serves `/api/v1/docs` and `/api/v1/openapi.json`. POST `/api/v1/discoveries` accepts flexible strict search criteria or a validated exact LinkedIn people-search URL and returns a job ID. GET `/api/v1/discoveries/{id}` returns status and validated JSON; cancellation and deletion endpoints are documented in the schema. No outreach sender is installed: nothing is ever sent, typed or clicked on LinkedIn. The only recurring task is the optional outreach connection check described below (read-only, daily, capped).
+The same authenticated HTTPS origin now serves `/api/v1/docs` and `/api/v1/openapi.json`. POST `/api/v1/discoveries` accepts flexible strict search criteria or a validated exact LinkedIn people-search URL and returns a job ID. GET `/api/v1/discoveries/{id}` returns status and validated JSON; cancellation and deletion endpoints are documented in the schema. The only LinkedIn mutation is the outreach connection request described below (one per contact, paced, capped, paused on any challenge). Messages after acceptance stay drafts; everything else is read-only.
 
 The v6 runtime adds bounded serialized research passes, strict observed role/sector qualification, evidence checking and honest partial outcomes; see its own contract and tests. Only one API research job drives the shared browser at a time. Read-only tool dispatch excludes arbitrary code, vault, click/type, terminal and sending. Normal accessible pagination is bounded; login/challenge/access limits stop the job. Results may be partial, blocked or failed; 15 is a target, never padded. Lead data stays privately in the volume with 30-day API retention; Hermes's own traces require their separate private retention policy. The skill is guidance, not an OS/network sandbox.
 
-For fast lead lists use `"source": "search"`: the same endpoint runs a search-engine pipeline (LinkedIn profiles from Google results, roles confirmed on the firm's own website/imprint, `verification` tier per lead, `max_cost_usd` cap) without the browser agent or a LinkedIn login. It needs `TREG_TOKEN` (`docker compose exec session python3 /opt/browser-box/discovery-api/search_backend.py set-token`) and the configured OpenRouter key. Example request: `kanzlei-deutschland.json`, sent with `py local-api.py --request kanzlei-deutschland.json` (Windows) or `python3 local-api.py --request kanzlei-deutschland.json`.
+For fast lead lists use `"source": "search"`: the same endpoint runs a search-engine pipeline (LinkedIn profiles from a people index (Exa via treg) and Google results, in rounds that stop at the target, roles confirmed on the firm's own website/imprint, `verification` tier per lead, `max_cost_usd` cap, failed provider calls reported as `provider_errors`, regions such as "NRW" searched through their cities, repeat searches skipping people already decided and trying fresh facets first) without the browser agent or a LinkedIn login. A fixed evaluation set (`runtime/discovery-api/eval_search.py`) measures yield, cost and, after a manual review sheet, precision per tier. It needs `TREG_TOKEN` (`docker compose exec session python3 /opt/browser-box/discovery-api/search_backend.py set-token`) and the configured OpenRouter key. Example request: `kanzlei-deutschland.json`, sent with `py local-api.py --request kanzlei-deutschland.json` (Windows) or `python3 local-api.py --request kanzlei-deutschland.json`.
 
 Web UI: `https://<host>/ui/` (same password) shows overview, searches, all leads with evidence, and the outreach board with copy buttons; `/` still opens the remote desktop. Read-only overview endpoints for own tools: `GET /api/v1/discoveries`, `GET /api/v1/leads?verification=&q=`, `GET /api/v1/status`; `POST /api/v1/outreach/{id}/sent` marks a message as sent by you.
 
 Shared registry (`/api/v1/registry`, `/api/v1/registry/check`): one lookup/suppression list keyed by LinkedIn profile and company domain/name. Other agents check and register their contacts there (batch up to 500); search never re-delivers known people, skips blocked companies and returns at most `max_per_company` (default 1) leads per company; outreach refuses blocked people/companies and supports a permanent "do not contact".
 
-Outreach (`/api/v1/outreach`): register a LinkedIn profile plus firm website/name, a `topic` and a `template`; you get a short connection note to send yourself. Once a day the box checks read-only (background browser tab, no clicks, daily cap, pause on login walls) whether the connection was accepted; then it researches the firm for the topic (findings with verbatim quotes and URLs) and drafts the message following the template (`status: ready`). Sending stays manual. Disable the check with `OUTREACH_BACKGROUND=0`.
+Outreach (`/api/v1/outreach`): register a LinkedIn profile plus firm website/name, a `topic` and a `template`; the box sends the short connection note itself (default on, `auto_connect`/`OUTREACH_AUTO_CONNECT`, `OUTREACH_CONNECT_DAILY_CAP`=15, working hours, hard pause on any challenge). Once a day the box checks read-only (background browser tab, no clicks, daily cap, pause on login walls) whether the connection was accepted; then it researches the firm for the topic (findings with verbatim quotes and URLs) and drafts the message following the template (`status: ready`). Sending stays manual. While answers are awaited, at most twice a day it reads the conversation list of your inbox (no thread opened, nothing stored but the match) and marks contacts whose conversation ends with their message as `replied`; `OUTREACH_REPLY_CHECK=0` turns that off. Disable the check with `OUTREACH_BACKGROUND=0`.
+
+Agent primitives (`/api/v1/actions`, `/api/v1/events`, `/api/v1/campaigns`, `/api/v1/webhooks`, `PATCH /api/v1/outreach/{id}`): an external agent can read a prioritized action list, follow a change feed with a cursor, start one campaign that runs discovery → outreach → connect → acceptance → draft, edit drafts, and receive signed webhook pushes. Campaigns and webhooks carry ids/statuses only; no personal content leaves the box.
 
 See `runtime/discovery-api/README.md` for the exact request/response contract, CA-scoped curl and known provenance limitations. Model use consumes the configured provider's quota/balance. Source and synthetic fixtures may be saved in Brain; actual lead results, credentials and volumes must never be included.

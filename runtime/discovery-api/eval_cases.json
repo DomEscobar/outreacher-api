@@ -1,0 +1,12 @@
+{
+  "_comment": "Fixed evaluation set for source=search (eval_search.py). Each case is one paid run capped by budget.max_cost_usd. Keys starting with _ are ignored.",
+  "defaults": {"limit": 10, "include_review": true, "budget": {"seconds": 600, "max_cost_usd": 0.4}},
+  "cases": [
+    {"name": "kanzlei-muenchen", "keywords": ["Rechtsanwalt"], "titles": ["Partner", "Inhaber", "Geschäftsführer"], "locations": ["München"]},
+    {"name": "kanzlei-hamburg", "keywords": ["Rechtsanwalt"], "titles": ["Partner", "Inhaber", "Geschäftsführer"], "locations": ["Hamburg"]},
+    {"name": "steuerberater-muenchen", "keywords": ["Steuerberater"], "titles": ["Inhaber", "Partner", "Geschäftsführer"], "locations": ["München"]},
+    {"name": "steuerberater-hamburg", "keywords": ["Steuerberater"], "titles": ["Inhaber", "Partner", "Geschäftsführer"], "locations": ["Hamburg"]},
+    {"name": "software-muenchen", "keywords": ["Softwareentwicklung"], "titles": ["CEO", "Geschäftsführer", "Gründer"], "locations": ["München"]},
+    {"name": "software-hamburg", "keywords": ["Softwareentwicklung"], "titles": ["CEO", "Geschäftsführer", "Gründer"], "locations": ["Hamburg"]}
+  ]
+}

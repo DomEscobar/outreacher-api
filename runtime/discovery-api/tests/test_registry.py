@@ -33,6 +33,19 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(r.person_key('https://de.linkedin.com/in/Erika-Synthetic/de'), 'https://www.linkedin.com/in/erika-synthetic')
 
 
+class SnapshotTests(unittest.TestCase):
+    def test_known_companies_include_mere_deliveries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            reg = r.Registry(Path(tmp))
+            reg.upsert({'linkedin_url': LI + 'erika-synthetic', 'company_website': 'https://delivered-synthetic.de',
+                        'company_name': 'Delivered GmbH', 'status': 'delivered', 'source': 'search'})
+            reg.upsert({'company_website': 'https://customer-synthetic.de', 'status': 'customer', 'source': 'crm'})
+            snap = reg.snapshot()
+            self.assertEqual(snap['domains'], {'customer-synthetic.de'})  # blocking only
+            self.assertEqual(snap['known_domains'], {'delivered-synthetic.de', 'customer-synthetic.de'})
+            self.assertIn('delivered', snap['known_names'])
+
+
 class RegistryApiTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

@@ -15,7 +15,7 @@ class BackendError(Exception):
 
 SAFE_ERRORS = frozenset({'timed_out', 'cancelled', 'output_limit', 'prompt_limit', 'invalid_stream',
                         'invalid_backend_result', 'invalid_result_schema', 'backend_exit', 'turn_limit', 'procedure_unavailable',
-                        'search_not_configured'})
+                        'search_not_configured', 'provider_error'})
 
 
 def safe_error(code):

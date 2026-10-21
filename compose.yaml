@@ -8,6 +8,10 @@ services:
     image: ${COMPOSE_PROJECT_NAME:?Run provision.py configure first}:v6
     environment:
       DISCOVERY_ALLOWED_ORIGIN: ${DISCOVERY_ALLOWED_ORIGIN:?Run provision.py configure first}
+      TZ: ${BROWSER_TZ:-Europe/Berlin}
+      BROWSER_LANG: ${BROWSER_LANG:-de-DE}
+      BROWSER_PROXY: ${BROWSER_PROXY:-}
+      BROWSER_START_URL: ${BROWSER_START_URL:-}
     init: true
     stop_grace_period: 30s
     shm_size: 1gb

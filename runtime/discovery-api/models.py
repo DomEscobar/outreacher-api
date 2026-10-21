@@ -78,6 +78,8 @@ class Criteria(Strict):
     expand_terms: bool = True  # source=search: LLM adds related sector terms and equivalent title wordings
     max_per_company: int | None = Field(default=1, ge=1, le=100)  # source=search: counting leads per company; null = no cap
     exclude_previous: bool = True
+    # source=search: also skip every firm already in the shared registry (delivered before, in outreach, ...).
+    exclude_previous_companies: bool = False
     search_url: str | None = Field(default=None, max_length=4096)
     budget: Budget = Field(default_factory=Budget)
 
@@ -135,8 +137,9 @@ class Criteria(Strict):
                 raise ValueError('search source takes locations, not LinkedIn filter IDs')
         else:
             if (self.locations or self.include_review or self.min_verification != 'plausible' or not self.expand_terms
-                    or self.max_per_company != 1):  # compare values: stored jobs re-validate with every field set
-                raise ValueError('locations, include_review, min_verification, expand_terms and max_per_company require source=search')
+                    or self.max_per_company != 1 or self.exclude_previous_companies):  # compare values: stored jobs re-validate with every field set
+                raise ValueError('locations, include_review, min_verification, expand_terms, max_per_company and '
+                                 'exclude_previous_companies require source=search')
             if self.limit > 30:
                 raise ValueError('limit above 30 requires source=search')
         return self
@@ -156,7 +159,7 @@ class Evidence(Strict):
     url: str = Field(max_length=2048)
     quote: str = Field(min_length=8, max_length=1200)
     supports: list[Literal['name', 'current_role', 'company', 'company_website', 'linkedin_url', 'sector']] = Field(min_length=1, max_length=6)
-    source: Literal['search_snippet', 'firm_website'] | None = None  # set by source=search only
+    source: Literal['search_snippet', 'people_index', 'firm_website'] | None = None  # set by source=search only
     _url = field_validator('url')(public_url)
 
 

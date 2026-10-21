@@ -9,11 +9,18 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from actions import build_actions
+from campaigns import CampaignRecord, CampaignRequest, CampaignService, CampaignStore
+from events import events_since
 from models import Criteria
-from outreach import OutreachConflict, OutreachRecord, OutreachRequest, OutreachService, OutreachStore, Status
+from outreach import (OutreachConflict, OutreachPatch, OutreachRecord, OutreachRequest, OutreachService, OutreachStore,
+                      Status)
+from webhooks import (WebhookCreated, WebhookDispatcher, WebhookRequest, WebhookStore, WebhookView,
+                      view as webhook_view)
 from registry import (CheckResult, Registry, RegistryCheckRequest, RegistryEntry, RegistryStatus, RegistryUpsertRequest,
                       UpsertResult)
 from response_models import JobResponse
+from search_memory import SearchMemory
 from store import Store, QueueFull
 from views import DiscoverySummary, LeadRow, SystemStatus, lead_rows, summarize, system_status
 from worker import Worker
@@ -50,7 +57,7 @@ class BodyLimit:
 
 
 def create_app(directory=None, origin=None, backend=None, start_worker=True, max_queue=8, retention_days=30,
-               search_backend=None, outreach_writer=None, outreach_reader=None):
+               search_backend=None, outreach_writer=None, outreach_reader=None, outreach_connector=None):
     directory = Path(directory or os.environ.get('DISCOVERY_DATA_DIR', '/opt/data/discovery-api'))
     origin = origin or os.environ.get('DISCOVERY_ALLOWED_ORIGIN')
 
@@ -70,12 +77,20 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
             stored_leads = [l for job in app.state.store.list(limit=100000) if job['result']
                             for l in json.loads(job['result']).get('leads') or []]
             app.state.registry.backfill(app.state.store.previous(), outreach_store.list(limit=100000), stored_leads)
-            app.state.worker = Worker(app.state.store, backend, search_backend, browser_lock, app.state.registry)
+            app.state.worker = Worker(app.state.store, backend, search_backend, browser_lock, app.state.registry,
+                                      SearchMemory(directory))
             app.state.outreach = OutreachService(outreach_store, outreach_writer, outreach_reader,
-                                                 browser_lock, start=start_worker, registry=app.state.registry)
+                                                 browser_lock, start=start_worker, registry=app.state.registry,
+                                                 connector=outreach_connector)
+            app.state.campaigns = CampaignService(CampaignStore(directory), app.state.store, app.state.outreach,
+                                                  app.state.worker, start=start_worker)
+            app.state.webhooks = WebhookDispatcher(WebhookStore(directory), app.state.outreach, app.state.store,
+                                                   app.state.campaigns.store, start=start_worker)
             if start_worker: app.state.worker.start()
             try: yield
             finally:
+                app.state.webhooks.close()
+                app.state.campaigns.close()
                 app.state.outreach.close()
                 if start_worker: app.state.worker.close()
         finally:
@@ -149,17 +164,37 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
         return get_outreach(ident)
 
     @app.get('/api/v1/outreach', response_model=list[OutreachRecord])
-    def outreach_list(status: Status | None = None):
-        return app.state.outreach.store.list(status)
+    def outreach_list(status: Status | None = None, campaign_id: str | None = Query(None, max_length=64)):
+        return [r for r in app.state.outreach.store.list(status)
+                if not campaign_id or r.get('campaign_id') == campaign_id]
 
     @app.get('/api/v1/outreach/{ident}', response_model=OutreachRecord)
     def outreach_get(ident: str):
         return get_outreach(ident)
 
+    @app.patch('/api/v1/outreach/{ident}', response_model=OutreachRecord)
+    def outreach_patch(ident: str, patch: OutreachPatch):
+        """Review edit of the note/message/topic; never sends anything."""
+        get_outreach(ident)
+        try:
+            return app.state.outreach.update(ident, patch)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+
     @app.post('/api/v1/outreach/{ident}/sent', response_model=OutreachRecord)
     def outreach_sent(ident: str):
         get_outreach(ident)
         return app.state.outreach.mark_sent(ident)
+
+    @app.post('/api/v1/outreach/{ident}/replied', response_model=OutreachRecord)
+    def outreach_replied(ident: str):
+        get_outreach(ident)
+        return app.state.outreach.mark_replied(ident)
+
+    @app.post('/api/v1/outreach/{ident}/no-reply', response_model=OutreachRecord)
+    def outreach_no_reply(ident: str):
+        get_outreach(ident)
+        return app.state.outreach.unmark_replied(ident)
 
     @app.get('/api/v1/discoveries', response_model=list[DiscoverySummary])
     def discoveries_list(status: str | None = None, limit: int = Query(100, ge=1, le=1000)):
@@ -172,7 +207,8 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
 
     @app.get('/api/v1/status', response_model=SystemStatus)
     def status():
-        return system_status(app.state.store, app.state.outreach, app.state.registry)
+        return system_status(app.state.store, app.state.outreach, app.state.registry,
+                             app.state.campaigns.store, app.state.webhooks.store)
 
     @app.get('/ui', include_in_schema=False)
     def ui_redirect():
@@ -190,6 +226,23 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
         get_outreach(ident)
         return app.state.outreach.mark_accepted(ident)
 
+    @app.post('/api/v1/outreach/{ident}/connect', response_model=OutreachRecord)
+    def outreach_connect(ident: str):
+        """Retry a failed/manual connection request (sent by the box, not by an agent)."""
+        get_outreach(ident)
+        return app.state.outreach.retry_connect(ident)
+
+    @app.post('/api/v1/outreach/{ident}/check-connection', response_model=OutreachRecord)
+    def outreach_check_connection(ident: str):
+        get_outreach(ident)
+        return app.state.outreach.check_connection(ident)
+
+    @app.post('/api/v1/outreach/resume')
+    def outreach_resume():
+        """A human fixed the login/challenge via noVNC: clear the persisted pause now."""
+        app.state.outreach.resume()
+        return {'paused_until': None}
+
     @app.delete('/api/v1/outreach/{ident}', status_code=204)
     def outreach_delete(ident: str):
         get_outreach(ident)
@@ -199,6 +252,69 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
     def outreach_do_not_contact(ident: str):
         get_outreach(ident)
         return app.state.outreach.mark_do_not_contact(ident)
+
+    # -- agent primitives: change feed and prioritized next actions
+    @app.get('/api/v1/events')
+    def events(since: float = Query(0, ge=0), limit: int = Query(200, ge=1, le=500)):
+        items, cursor = events_since(app.state.outreach, app.state.store, app.state.campaigns.store, since, limit)
+        return {'events': items, 'next_cursor': cursor}
+
+    @app.get('/api/v1/actions')
+    def actions(kind: str | None = Query(None, max_length=40), limit: int = Query(100, ge=1, le=500)):
+        return build_actions(app.state.outreach, app.state.store, app.state.campaigns.store, kind=kind, limit=limit)
+
+    # -- campaigns: one call runs discovery -> outreach -> connect -> acceptance -> research/draft
+    def get_campaign(ident):
+        record = app.state.campaigns.store.get(ident)
+        if not record: raise HTTPException(404, 'campaign_not_found')
+        return record
+
+    @app.post('/api/v1/campaigns', status_code=201, response_model=CampaignRecord)
+    def campaign_create(request: CampaignRequest):
+        record = app.state.campaigns.store.create(request)
+        app.state.campaigns.wake.set()
+        return record
+
+    @app.get('/api/v1/campaigns', response_model=list[CampaignRecord])
+    def campaign_list(status: str | None = Query(None, max_length=24)):
+        return app.state.campaigns.store.list(status)
+
+    @app.get('/api/v1/campaigns/{ident}', response_model=CampaignRecord)
+    def campaign_get(ident: str):
+        return get_campaign(ident)
+
+    @app.post('/api/v1/campaigns/{ident}/pause', response_model=CampaignRecord)
+    def campaign_pause(ident: str):
+        get_campaign(ident)
+        return app.state.campaigns.pause(ident)
+
+    @app.post('/api/v1/campaigns/{ident}/resume', response_model=CampaignRecord)
+    def campaign_resume(ident: str):
+        get_campaign(ident)
+        return app.state.campaigns.resume(ident)
+
+    @app.post('/api/v1/campaigns/{ident}/cancel', response_model=CampaignRecord)
+    def campaign_cancel(ident: str):
+        get_campaign(ident)
+        return app.state.campaigns.cancel(ident)
+
+    @app.delete('/api/v1/campaigns/{ident}', status_code=204)
+    def campaign_delete(ident: str):
+        get_campaign(ident)
+        app.state.campaigns.store.delete(ident)
+
+    # -- webhooks: signed push of events to an agent
+    @app.post('/api/v1/webhooks', status_code=201, response_model=WebhookCreated)
+    def webhook_create(request: WebhookRequest):
+        record = app.state.webhooks.store.create(request)
+        return {**webhook_view(record), 'secret': record['secret']}
+    @app.get('/api/v1/webhooks', response_model=list[WebhookView])
+    def webhook_list():
+        return [webhook_view(r) for r in app.state.webhooks.store.list()]
+
+    @app.delete('/api/v1/webhooks/{ident}', status_code=204)
+    def webhook_delete(ident: str):
+        if not app.state.webhooks.store.delete(ident): raise HTTPException(404, 'webhook_not_found')
 
     # -- shared registry: lookup / suppression list for this box and external agents
     @app.post('/api/v1/registry/check', response_model=list[CheckResult])

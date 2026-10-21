@@ -1,8 +1,12 @@
 LOCAL SYNTHETIC REGRESSION EXECUTION; no paid model or live browser runs
-Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=runtime/discovery-api python3 -m unittest discover -s runtime/discovery-api/tests -v
+Command: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=runtime/discovery-api python3 -m unittest discover -s runtime/discovery-api/tests -p test_*.py -v
+Host: Linux x86_64 (WSL2 Ubuntu), Python 3.12.14
 
-/usr/local/lib/python3.13/dist-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+/tmp/outreacher-venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
   from starlette.testclient import TestClient as TestClient  # noqa
+test_offline_check_still_stores_with_notice (test_configure_provider.ConfigureProviderTests.test_offline_check_still_stores_with_notice) ... ok
+test_openrouter_key_and_default_model (test_configure_provider.ConfigureProviderTests.test_openrouter_key_and_default_model) ... ok
+test_rejected_inputs_store_nothing (test_configure_provider.ConfigureProviderTests.test_rejected_inputs_store_nothing) ... ok
 test_blocked (test_discovery.APITests.test_blocked) ... ok
 test_body_limit (test_discovery.APITests.test_body_limit) ... ok
 test_cancel_delete_and_404 (test_discovery.APITests.test_cancel_delete_and_404) ... ok
@@ -53,6 +57,13 @@ test_real_subprocess_jsonl_fixture (test_discovery.SubprocessTests.test_real_sub
 test_stderr_limit (test_discovery.SubprocessTests.test_stderr_limit) ... ok
 test_stdout_limit (test_discovery.SubprocessTests.test_stdout_limit) ... ok
 test_timeout_terminates_group (test_discovery.SubprocessTests.test_timeout_terminates_group) ... ok
+test_location_contradiction_counts_as_wrong (test_eval_search.EvalTests.test_location_contradiction_counts_as_wrong) ... ok
+test_missing_configuration_stops_all_cases (test_eval_search.EvalTests.test_missing_configuration_stops_all_cases) ... ok
+test_overrides_and_unknown_case (test_eval_search.EvalTests.test_overrides_and_unknown_case) ... ok
+test_repeat_runs_exclude_earlier_leads_and_use_the_memory (test_eval_search.EvalTests.test_repeat_runs_exclude_earlier_leads_and_use_the_memory) ... ok
+test_run_writes_private_sheet_and_score_reports_precision (test_eval_search.EvalTests.test_run_writes_private_sheet_and_score_reports_precision) ... ok
+test_shipped_cases_are_valid (test_eval_search.EvalTests.test_shipped_cases_are_valid) ... ok
+test_total_budget_skips_remaining_cases (test_eval_search.EvalTests.test_total_budget_skips_remaining_cases) ... ok
 test_api_actual_subprocess_120_reservations_are_readable_not_tool_turns (test_evaluation.SubprocessRepairTests.test_api_actual_subprocess_120_reservations_are_readable_not_tool_turns) ... ok
 test_api_atomic_cancel_during_repair_does_not_commit_partial_or_seen (test_evaluation.SubprocessRepairTests.test_api_atomic_cancel_during_repair_does_not_commit_partial_or_seen) ... ok
 test_api_readback_deterministic_repair_and_previous_dedup (test_evaluation.SubprocessRepairTests.test_api_readback_deterministic_repair_and_previous_dedup) ... ok
@@ -71,12 +82,42 @@ test_skill_is_actual_versioned_text_and_correct_host_fallback (test_evaluation.V
 test_unique_supported_candidates_beyond_quota_are_not_duplicate (test_evaluation.VerdictTests.test_unique_supported_candidates_beyond_quota_are_not_duplicate) ... ok
 test_untrusted_instructions_not_feedback_policy_or_tools (test_evaluation.VerdictTests.test_untrusted_instructions_not_feedback_policy_or_tools) ... ok
 test_extended_budget_persisted_api_readback (test_extended_response.ExtendedResponseTests.test_extended_budget_persisted_api_readback) ... ok
+test_connection_states_de_en (test_outreach.ClassifyTests.test_connection_states_de_en) ... ok
+test_request_contract (test_outreach.ClassifyTests.test_request_contract) ... ok
+test_answer_to_the_connection_note_counts_too (test_outreach.FlowTests.test_answer_to_the_connection_note_counts_too) ... ok
+test_blocked_page_pauses_for_hours_and_survives_restart (test_outreach.FlowTests.test_blocked_page_pauses_for_hours_and_survives_restart) ... ok
+test_common_paths_when_extract_has_no_links (test_outreach.FlowTests.test_common_paths_when_extract_has_no_links) ... ok
+test_empty_inbox_backs_off_and_daily_cap_stops_it (test_outreach.FlowTests.test_empty_inbox_backs_off_and_daily_cap_stops_it) ... ok
+test_expiry_after_configured_days (test_outreach.FlowTests.test_expiry_after_configured_days) ... ok
+test_full_flow_connect_check_research_ready (test_outreach.FlowTests.test_full_flow_connect_check_research_ready) ... ok
+test_inbox_calibration_reports_counts_only (test_outreach.FlowTests.test_inbox_calibration_reports_counts_only) ... ok
+test_inbox_last_message_ours_or_ambiguous_is_no_reply (test_outreach.FlowTests.test_inbox_last_message_ours_or_ambiguous_is_no_reply) ... ok
+test_inbox_reply_marks_contact_and_keeps_no_inbox_text (test_outreach.FlowTests.test_inbox_reply_marks_contact_and_keeps_no_inbox_text) ... ok
+test_inbox_rows_and_name_matching (test_outreach.FlowTests.test_inbox_rows_and_name_matching) ... ok
+test_login_wall_pauses_and_daily_cap (test_outreach.FlowTests.test_login_wall_pauses_and_daily_cap) ... ok
+test_manual_accept_override_and_cross_origin (test_outreach.FlowTests.test_manual_accept_override_and_cross_origin) ... ok
+test_manual_check_connection_reads_without_sending (test_outreach.FlowTests.test_manual_check_connection_reads_without_sending) ... ok
+test_manual_check_detects_connected_and_moves_to_research (test_outreach.FlowTests.test_manual_check_detects_connected_and_moves_to_research) ... ok
+test_manual_check_ignores_cap_but_is_a_noop_after_sent (test_outreach.FlowTests.test_manual_check_ignores_cap_but_is_a_noop_after_sent) ... ok
+test_manual_reply_and_undo (test_outreach.FlowTests.test_manual_reply_and_undo) ... ok
+test_outside_working_hours_defers_profile_and_inbox_reads (test_outreach.FlowTests.test_outside_working_hours_defers_profile_and_inbox_reads) ... ok
+test_reader_only_reads (test_outreach.FlowTests.test_reader_only_reads) ... ok
+test_reply_check_only_when_waiting_and_pauses_on_login_wall (test_outreach.FlowTests.test_reply_check_only_when_waiting_and_pauses_on_login_wall) ... ok
+test_resume_clears_the_persisted_pause (test_outreach.FlowTests.test_resume_clears_the_persisted_pause) ... ok
 test_incompatible_agent_fails_closed (test_policy.AgentPolicyTests.test_incompatible_agent_fails_closed) ... ok
 test_no_memory_review_or_auxiliary_schemas (test_policy.AgentPolicyTests.test_no_memory_review_or_auxiliary_schemas) ... ok
 test_extract_urls (test_policy.PolicyTests.test_extract_urls) ... ok
 test_forbidden_tools (test_policy.PolicyTests.test_forbidden_tools) ... ok
 test_safe_navigation (test_policy.PolicyTests.test_safe_navigation) ... ok
 test_selection_and_execution_fail_closed (test_policy.PolicyTests.test_selection_and_execution_fail_closed) ... ok
+test_company_keys (test_registry.KeyTests.test_company_keys) ... ok
+test_backfill_existing_data (test_registry.RegistryApiTests.test_backfill_existing_data) ... ok
+test_external_agent_check_and_import (test_registry.RegistryApiTests.test_external_agent_check_and_import) ... ok
+test_max_per_company (test_registry.RegistryApiTests.test_max_per_company) ... ok
+test_outreach_gates_and_registry_sync (test_registry.RegistryApiTests.test_outreach_gates_and_registry_sync) ... ok
+test_search_skips_registry_and_records_deliveries (test_registry.RegistryApiTests.test_search_skips_registry_and_records_deliveries) ... ok
+test_validation_bulk_and_sticky_opt_out (test_registry.RegistryApiTests.test_validation_bulk_and_sticky_opt_out) ... ok
+test_known_companies_include_mere_deliveries (test_registry.SnapshotTests.test_known_companies_include_mere_deliveries) ... ok
 test_invalid_budget_fails_closed (test_resilience.DispatchBudgetTests.test_invalid_budget_fails_closed) ... ok
 test_parallel_calls_cannot_exceed_process_local_budget (test_resilience.DispatchBudgetTests.test_parallel_calls_cannot_exceed_process_local_budget) ... ok
 test_api_actual_subprocess_iterative_integration_and_openapi (test_resilience.MultiPassTests.test_api_actual_subprocess_iterative_integration_and_openapi) ... ok
@@ -101,13 +142,72 @@ test_invalid_optional_website_salvages_all_six (test_resilience.SalvageTests.tes
 test_only_successful_exact_allowlist_tool_observations (test_resilience.SalvageTests.test_only_successful_exact_allowlist_tool_observations) ... ok
 test_requested_titles_require_observed_matching_role (test_resilience.SalvageTests.test_requested_titles_require_observed_matching_role) ... ok
 test_search_snippet_alone_is_not_direct_profile_document (test_resilience.SalvageTests.test_search_snippet_alone_is_not_direct_profile_document) ... ok
+test_sector_evidence_must_be_observed_not_claimed (test_resilience.SalvageTests.test_sector_evidence_must_be_observed_not_claimed) ... ok
 test_strict_envelope_and_no_raw_error (test_resilience.SalvageTests.test_strict_envelope_and_no_raw_error) ... ok
 test_supplied_url_and_ids_not_rewritten_for_page_hint (test_resilience.SalvageTests.test_supplied_url_and_ids_not_rewritten_for_page_hint) ... ok
 test_unambiguous_prose_only_not_multiple_objects (test_resilience.SalvageTests.test_unambiguous_prose_only_not_multiple_objects) ... ok
 test_unknown_role_does_not_count_and_legal_scope_not_unrelated_sector (test_resilience.SalvageTests.test_unknown_role_does_not_count_and_legal_scope_not_unrelated_sector) ... ok
 test_verbatim_observation_and_fact_support_not_combined_or_guessed (test_resilience.SalvageTests.test_verbatim_observation_and_fact_support_not_combined_or_guessed) ... ok
+test_provider_error_fails_the_job_visibly (test_search.APITests.test_provider_error_fails_the_job_visibly) ... ok
+test_submit_poll_and_dedup_via_api (test_search.APITests.test_submit_poll_and_dedup_via_api) ... ok
+test_unconfigured_search_fails_safely (test_search.APITests.test_unconfigured_search_fails_safely) ... ok
+test_decision_maker_titles (test_search.ConfigTests.test_decision_maker_titles) ... ok
+test_env_file_roundtrip_private (test_search.ConfigTests.test_env_file_roundtrip_private) ... ok
+test_openrouter_key_from_env_file_or_credential_pool (test_search.ConfigTests.test_openrouter_key_from_env_file_or_credential_pool) ... ok
+test_source_quote_returns_literal_line (test_search.ConfigTests.test_source_quote_returns_literal_line) ... ok
+test_team_from_token_payload (test_search.ConfigTests.test_team_from_token_payload) ... ok
+test_agent_leads_cannot_self_certify_a_tier (test_search.CriteriaTests.test_agent_leads_cannot_self_certify_a_tier) ... ok
+test_search_contract (test_search.CriteriaTests.test_search_contract) ... ok
+test_quote_kept_when_no_whole_line_matches (test_search.EvidenceTests.test_quote_kept_when_no_whole_line_matches) ... ok
+test_website_tier_needs_its_website_facts_in_the_evidence (test_search.EvidenceTests.test_website_tier_needs_its_website_facts_in_the_evidence) ... ok
+test_facets_widen_the_search_but_not_the_checks (test_search.FacetTests.test_facets_widen_the_search_but_not_the_checks) ... ok
+test_firm_match_wins_over_an_earlier_place_match (test_search.FirmIdentityTests.test_firm_match_wins_over_an_earlier_place_match) ... ok
+test_firm_named_ignores_the_persons_own_name (test_search.FirmIdentityTests.test_firm_named_ignores_the_persons_own_name) ... ok
+test_profile_found_by_name_and_place_only_is_capped (test_search.FirmIdentityTests.test_profile_found_by_name_and_place_only_is_capped) ... ok
+test_final_failures_raise_instead_of_returning_nothing (test_search.HttpPostTests.test_final_failures_raise_instead_of_returning_nothing) ... ok
+test_retries_then_returns_body_and_headers (test_search.HttpPostTests.test_retries_then_returns_body_and_headers) ... ok
+test_exclude_previous_companies (test_search.KnownCompanyTests.test_exclude_previous_companies) ... ok
+test_a_run_that_decides_every_result_spends_its_queries (test_search.MemoryTests.test_a_run_that_decides_every_result_spends_its_queries) ... ok
+test_api_uses_memory_only_when_excluding_previous_results (test_search.MemoryTests.test_api_uses_memory_only_when_excluding_previous_results) ... ok
+test_memory_is_private_pseudonymous_and_expires (test_search.MemoryTests.test_memory_is_private_pseudonymous_and_expires) ... ok
+test_queries_that_found_nothing_new_go_last (test_search.MemoryTests.test_queries_that_found_nothing_new_go_last) ... ok
+test_repeat_search_skips_people_decided_before (test_search.MemoryTests.test_repeat_search_skips_people_decided_before) ... ok
+test_default_google_round_first_then_rounds_alternate (test_search.PeopleIndexTests.test_default_google_round_first_then_rounds_alternate) ... ok
+test_people_calls_sized_to_what_is_missing (test_search.PeopleIndexTests.test_people_calls_sized_to_what_is_missing) ... ok
+test_people_index_first_stops_when_target_reached (test_search.PeopleIndexTests.test_people_index_first_stops_when_target_reached) ... ok
+test_people_row_current_and_past_positions (test_search.PeopleIndexTests.test_people_row_current_and_past_positions) ... ok
+test_search_continues_after_index_and_reads_each_profile_once (test_search.PeopleIndexTests.test_search_continues_after_index_and_reads_each_profile_once) ... ok
+test_cancel_raises (test_search.PipelineTests.test_cancel_raises) ... ok
+test_contradiction_stays_review_even_with_min_linkedin (test_search.PipelineTests.test_contradiction_stays_review_even_with_min_linkedin) ... ok
+test_cost_cap_stops_and_keeps_partial_result (test_search.PipelineTests.test_cost_cap_stops_and_keeps_partial_result) ... ok
+test_firm_first_supplement_finds_imprint_decision_makers (test_search.PipelineTests.test_firm_first_supplement_finds_imprint_decision_makers) ... ok
+test_min_verification_linkedin_counts_snippet_only_leads (test_search.PipelineTests.test_min_verification_linkedin_counts_snippet_only_leads) ... ok
+test_missing_configuration (test_search.PipelineTests.test_missing_configuration) ... ok
+test_other_sector_with_custom_titles (test_search.PipelineTests.test_other_sector_with_custom_titles) ... ok
+test_previous_profiles_are_excluded (test_search.PipelineTests.test_previous_profiles_are_excluded) ... ok
+test_requested_titles_filter_roles (test_search.PipelineTests.test_requested_titles_filter_roles) ... ok
+test_review_leads_only_on_request_and_render_validates (test_search.PipelineTests.test_review_leads_only_on_request_and_render_validates) ... ok
+test_term_expansion_searches_and_accepts_equivalent_titles (test_search.PipelineTests.test_term_expansion_searches_and_accepts_equivalent_titles) ... ok
+test_tiers_from_firm_websites (test_search.PipelineTests.test_tiers_from_firm_websites) ... ok
+test_llm_error_body_is_a_failure (test_search.ProviderTests.test_llm_error_body_is_a_failure) ... ok
+test_page_fetches_get_little_time_and_nothing_runs_past_the_deadline (test_search.ProviderTests.test_page_fetches_get_little_time_and_nothing_runs_past_the_deadline) ... ok
+test_payment_required_stops_the_job (test_search.ProviderTests.test_payment_required_stops_the_job) ... ok
+test_people_index_direct_body_and_cost_header (test_search.ProviderTests.test_people_index_direct_body_and_cost_header) ... ok
+test_people_index_disabled_after_failures (test_search.ProviderTests.test_people_index_disabled_after_failures) ... ok
+test_provider_error_without_leads_fails_the_job_and_partial_otherwise (test_search.ProviderTests.test_provider_error_without_leads_fails_the_job_and_partial_otherwise) ... ok
+test_repeated_search_failures_stop_but_page_fetch_failures_only_count (test_search.ProviderTests.test_repeated_search_failures_stop_but_page_fetch_failures_only_count) ... ok
+test_routed_serp_output_and_charge (test_search.ProviderTests.test_routed_serp_output_and_charge) ... ok
+test_both_title_forms_in_one_query_and_locations_take_turns (test_search.QueryPlanTests.test_both_title_forms_in_one_query_and_locations_take_turns) ... ok
+test_rounds_stop_at_target (test_search.QueryPlanTests.test_rounds_stop_at_target) ... ok
+test_candidates_take_turns_by_place (test_search.RegionTests.test_candidates_take_turns_by_place) ... ok
+test_firm_first_matches_profiles_in_the_place_the_firm_was_found (test_search.RegionTests.test_firm_first_matches_profiles_in_the_place_the_firm_was_found) ... ok
+test_place_of_a_candidate (test_search.RegionTests.test_place_of_a_candidate) ... ok
+test_region_is_searched_city_by_city_and_checked_as_a_region (test_search.RegionTests.test_region_is_searched_city_by_city_and_checked_as_a_region) ... ok
+test_regions_resolve_to_their_largest_cities (test_search.RegionTests.test_regions_resolve_to_their_largest_cities) ... ok
+test_jobs_leads_status_and_sent (test_ui_api.OverviewTests.test_jobs_leads_status_and_sent) ... ok
+test_ui_page_is_self_contained_and_safe (test_ui_api.OverviewTests.test_ui_page_is_self_contained_and_safe) ... ok
 
 ----------------------------------------------------------------------
-Ran 103 tests in 9.684s
+Ran 202 tests in 174.943s
 
 OK
