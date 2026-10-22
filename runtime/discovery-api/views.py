@@ -29,13 +29,17 @@ class DiscoverySummary(Strict):
     cost_usd: float | None = None
     stop_reason: str | None = None
     error: str | None = None
+    template_id: str | None = None  # message template its leads get
 
 
 class LeadRow(Lead):
     job_id: str
     found_at: float
+    template_id: str | None = None                              # from the search that found it (else the default)
     outreach_id: str | None = None
     outreach_status: o.Status | None = None
+    outreach_connection: o.ConnectionState | None = None        # pending = invitation seen under "sent"
+    outreach_message: str | None = None                         # draft to copy once connected
     registry_status: str | None = None                          # this person in the shared registry
     company_registry: dict[str, int] = Field(default_factory=dict)  # other entries at the same company, by status
 
@@ -57,6 +61,11 @@ class OutreachHealth(Strict):
     last_inbox_check: float | None = None  # last read of the inbox's conversation list (reply check)
     next_inbox_check: float | None = None  # earliest next look (working hours, jitter, backoff)
     inbox_reads_today: int = 0
+    invite_check_enabled: bool = False
+    last_invite_check: float | None = None  # last complete look at sent invitations + newest connections
+    next_invite_check: float | None = None
+    invite_reads_today: int = 0
+    invite_daily_cap: int = 0
     connect_enabled: bool = False
     connect_last_24h: int = 0
     connect_daily_cap: int = 0
@@ -89,8 +98,9 @@ def summarize(row):
         stop_reason=meta.get('stop_reason'), error=row['error']).model_dump()
 
 
-def lead_rows(store, outreach_store, verification=None, q=None, limit=500, registry=None):
+def lead_rows(store, outreach_store, verification=None, q=None, limit=500, registry=None, job_templates=None):
     """All delivered leads, newest first, one row per LinkedIn profile, annotated with outreach state."""
+    job_templates = job_templates or {}
     contacts = {profile_key(r['linkedin_url']): r for r in outreach_store.list(limit=10000)}
     needle = sb.norm(q) if q else None
     rows, seen = [], set()
@@ -107,8 +117,11 @@ def lead_rows(store, outreach_store, verification=None, q=None, limit=500, regis
             hit = registry.check({'linkedin_url': lead['linkedin_url'], 'company_website': lead.get('company_website'),
                                   'company_name': lead.get('company')}) if registry else {}
             rows.append(LeadRow.model_validate({**lead, 'job_id': job['id'], 'found_at': job['updated'],
+                                                'template_id': job_templates.get(job['id']),
                                                 'outreach_id': contact['id'] if contact else None,
                                                 'outreach_status': contact['status'] if contact else None,
+                                                'outreach_connection': contact['connection'].get('state') if contact else None,
+                                                'outreach_message': contact.get('message') if contact else None,
                                                 'registry_status': (hit.get('person') or {}).get('status'),
                                                 'company_registry': (hit.get('company') or {}).get('statuses') or {}}).model_dump())
             if len(rows) >= limit: return rows
@@ -136,7 +149,12 @@ def system_status(store, service, registry=None, campaign_store=None, webhook_st
                                 paused_until=paused, reply_check_enabled=o.REPLY_CHECK and service.thread.is_alive(),
                                 last_inbox_check=service.store.meta('last_inbox_check'),
                                 next_inbox_check=service.store.meta('next_inbox_check'),
-                                inbox_reads_today=service.inbox_reads_today(time.time()),
+                                inbox_reads_today=service.reads_today('inbox', time.time()),
+                                invite_check_enabled=o.INVITE_CHECK and service.thread.is_alive(),
+                                last_invite_check=service.store.meta('last_invite_check'),
+                                next_invite_check=service.store.meta('next_invite_check'),
+                                invite_reads_today=service.reads_today('invite', time.time()),
+                                invite_daily_cap=o.INVITE_DAILY_CAP,
                                 connect_enabled=service.connector is not None and service.thread.is_alive(),
                                 connect_last_24h=service.store.connects_since(time.time() - 86400),
                                 connect_daily_cap=o.CONNECT_DAILY_CAP,
