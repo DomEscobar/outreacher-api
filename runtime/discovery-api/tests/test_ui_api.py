@@ -58,6 +58,7 @@ class OverviewTests(unittest.TestCase):
             rec = client.post('/api/v1/outreach', json=outreach_request(linkedin_url=leads[0]['linkedin_url'])).json()
             row = client.get('/api/v1/leads', params={'q': 'Erika'}).json()[0]
             self.assertEqual((row['outreach_id'], row['outreach_status']), (rec['id'], 'awaiting_connection'))
+            self.assertEqual((row['outreach_connection'], row['outreach_message']), ('unknown', None))  # nothing seen, no draft
             self.assertEqual(client.post(f"/api/v1/outreach/{rec['id']}/sent").json()['status'], 'sent')
             self.assertEqual(client.get('/api/v1/outreach', params={'status': 'sent'}).json()[0]['id'], rec['id'])
 
@@ -79,7 +80,7 @@ class OverviewTests(unittest.TestCase):
         self.assertNotRegex(html, r'innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(')  # web data only via textContent
         # Every API path the page calls exists.
         paths = set(re.findall(r"'/api/v1/([a-z]+)", html))
-        self.assertEqual(paths, {'status', 'discoveries', 'leads', 'outreach', 'campaigns', 'actions', 'registry'})
+        self.assertEqual(paths, {'status', 'discoveries', 'leads', 'outreach', 'campaigns', 'actions', 'registry', 'templates'})
 
 
 if __name__ == '__main__':

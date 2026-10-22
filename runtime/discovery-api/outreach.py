@@ -1,13 +1,16 @@
 """Outreach workflow: connect, then research and write only after the connection is accepted.
 
-  POST /api/v1/outreach            create a contact; the connection request is sent automatically
-                                   (connect.py clicks "Vernetzen" in the logged-in browser, with the note)
-  (background, daily)              read-only check in the logged-in browser whether the connection
-                                   was accepted (background tab, no clicks, daily cap, jitter)
+  POST /api/v1/outreach            create a contact; by default the human sends the connection request
+                                   on LinkedIn (UI: Leads -> "Vernetzen" opens the profile). With
+                                   OUTREACH_AUTO_CONNECT=1 connect.py clicks "Vernetzen" instead.
+  (background, ~3x a day)          read-only look at the sent-invitations list and the newest connections
+                                   of the logged-in account (background tab, no clicks): listed under
+                                   "sent" -> invitation pending, among the newest connections -> connected
   (background, after acceptance)   research the company for the requested topic (website pages,
                                    verbatim quotes) and draft the message following the template
   GET  /api/v1/outreach/{id}       status, findings with sources, message draft
   GET  /api/v1/outreach?status=…   list contacts
+  POST /api/v1/outreach/sync-invitations   run the invitation look now (counts only)
   POST /api/v1/outreach/{id}/connect    retry a failed/disabled connection request now
   POST /api/v1/outreach/{id}/accepted   start research now (manual override)
   (background, at most twice a day while answers are awaited)   read-only look at the conversation list of
@@ -17,10 +20,11 @@
   POST /api/v1/outreach/resume     clear a persisted login/challenge pause after a human logged in
   DELETE /api/v1/outreach/{id}
 
-The only external mutation is the connection request, sent by connect.py with a daily cap, irregular
+The only external mutation is the opt-in connection request, sent by connect.py with a daily cap, irregular
 spacing, a working-hours window and a hard stop on any challenge/rate-limit page (persisted pause).
 Messages after acceptance remain drafts for a human. Nothing is typed into a message composer.
 """
+from collections import Counter
 from contextlib import contextmanager
 import json
 import os
@@ -79,8 +83,9 @@ ACTIVE_HOURS = active_window(os.environ.get('OUTREACH_ACTIVE_HOURS', '8-20'))
 BLOCK_PAUSE_HOURS = float(os.environ.get('OUTREACH_BLOCK_PAUSE_HOURS', '12'))
 # Pause between two profile views (seconds): slow and irregular instead of a steady 20-60 s drumbeat.
 PROFILE_SPACING = spacing_window(os.environ.get('OUTREACH_PROFILE_SPACING', '120-300'))
-# Connection requests: on by default, but paced like a human and hard-capped per local calendar day.
-AUTO_CONNECT = os.environ.get('OUTREACH_AUTO_CONNECT', '1') != '0'
+# Connection requests by the box: off by default (the human connects by hand); when on, paced like a human
+# and hard-capped per local calendar day.
+AUTO_CONNECT = os.environ.get('OUTREACH_AUTO_CONNECT', '0') != '0'
 CONNECT_SPACING = spacing_window(os.environ.get('OUTREACH_CONNECT_SPACING', '90-240'))
 CONNECT_DAILY_CAP = max(1, int(os.environ.get('OUTREACH_CONNECT_DAILY_CAP', '15')))
 CONNECT_WEEKLY_CAP = max(CONNECT_DAILY_CAP, int(os.environ.get('OUTREACH_CONNECT_WEEKLY_CAP', '60')))
@@ -89,6 +94,18 @@ CONNECT_RETRY_HOURS = max(1.0, float(os.environ.get('OUTREACH_CONNECT_RETRY_HOUR
 # A used-up invitation allowance is not a transient wall: wait days before trying again.
 LIMIT_PAUSE_HOURS = max(BLOCK_PAUSE_HOURS, float(os.environ.get('OUTREACH_LIMIT_PAUSE_HOURS', '72')))
 REPLY_WATCH = ('ready', 'sent')  # an answer may also come to the connection note, before our message
+# Invitation look: while contacts wait for acceptance, the sent-invitations list and the newest connections
+# are read about every INVITE_CHECK_HOURS inside the active window, at most INVITE_DAILY_CAP times per local
+# calendar day (default 3). OUTREACH_INVITE_CHECK=0 turns it off (then profile checks follow the contacts).
+INVITE_CHECK = os.environ.get('OUTREACH_INVITE_CHECK', '1') != '0'
+INVITE_CHECK_HOURS = max(2.0, float(os.environ.get('OUTREACH_INVITE_CHECK_HOURS', '4')))
+INVITE_DAILY_CAP = max(1, int(os.environ.get('OUTREACH_INVITE_DAILY_CAP', '3')))
+INVITE_GRACE = 20 * 60  # a contact opened just now: give the human time to click "Vernetzen" before a look
+SENT_URL = 'https://www.linkedin.com/mynetwork/invitation-manager/sent/'
+CONNECTIONS_URL = 'https://www.linkedin.com/mynetwork/invite-connect/connections/'  # newest first
+LIST_ROWS = 200  # profiles read from the top of each list
+# An entry counts only inside its own card with this button (DE/EN), never in a suggestion box on the page.
+CARD_ACTIONS = {SENT_URL: ('zurückziehen', 'withdraw'), CONNECTIONS_URL: ('nachricht', 'message')}
 INBOX_URL = 'https://www.linkedin.com/messaging/'
 INBOX_ROWS = 40  # conversations read from the top of the list
 OWN_MESSAGE = ('sie:', 'you:', 'ich:')  # preview prefix when the last message is ours (DE/EN UI)
@@ -105,12 +122,23 @@ class OutreachBudget(Strict):
     max_cost_usd: float = Field(default=0.15, gt=0, le=2)
 
 
+class FollowUpTemplate(Strict):
+    after_days: int = Field(ge=1, le=120)  # days after the first message, without an answer
+    message: LongText                      # same {{placeholders}} as the message template
+
+
 class OutreachRequest(Strict):
     linkedin_url: str = Field(max_length=2048)
     company_website: str | None = Field(default=None, max_length=2048)
     company_name: Text | None = None
-    topic: Topic
-    template: LongText | None = None  # guidance for the message after acceptance (tone, structure, offer, CTA)
+    name: Text | None = None      # already known (e.g. from a lead): skips the search-index lookup
+    headline: Text | None = None
+    topic: Topic | None = None    # what you offer; required unless a template_id provides it
+    # The message after acceptance: either guidance for a free draft (tone, structure, offer, CTA) or a fixed text
+    # with {{placeholders}} (see fill_template), kept word for word except for the placeholders.
+    template: LongText | None = None
+    template_id: str | None = Field(default=None, max_length=64)  # a stored template: fills template/followups/topic
+    followups: list[FollowUpTemplate] = Field(default_factory=list, max_length=5)
     note_template: LongText | None = None  # optional guidance for the connection note
     connection_note: bool = True
     note_max_chars: int = Field(default=200, ge=50, le=300)
@@ -118,6 +146,7 @@ class OutreachRequest(Strict):
     language: Literal['de', 'en'] = 'de'
     auto_connect: bool = Field(default_factory=lambda: AUTO_CONNECT)  # send the connection request, not just draft the note
     allow_same_company: bool = False  # create even if another person at this company is already in outreach
+    opened: bool = False  # the human opens the profile right now to connect (the UI's "Vernetzen ↗")
     budget: OutreachBudget = Field(default_factory=OutreachBudget)
 
     @field_validator('linkedin_url')
@@ -136,6 +165,8 @@ class OutreachRequest(Strict):
     def company(self):
         if not (self.company_website or self.company_name):
             raise ValueError('company_website or company_name required')
+        if not (self.topic or self.template_id):
+            raise ValueError('topic or template_id required')
         return self
 
 
@@ -163,12 +194,20 @@ class ConnectInfo(Strict):
     next_attempt_at: float | None = None
     sent_at: float | None = None
     error: str | None = None
+    opened_at: float | None = None  # the human opened the profile to connect (UI: "Vernetzen"); unset = still to do
 
 
 class Reply(Strict):
     detected_at: float
     source: Literal['inbox', 'manual']  # inbox: conversation list showed their message last
     previous_status: Status  # restored by /no-reply when a detection was wrong
+    handled_at: float | None = None  # the human answered it: no longer on the to-do list
+
+
+class FollowUp(Strict):
+    after_days: int
+    message: str
+    sent_at: float | None = None  # when the human copied it into LinkedIn
 
 
 class OutreachPatch(Strict):
@@ -176,6 +215,8 @@ class OutreachPatch(Strict):
     connection_note: LongText | None = None
     message: LongText | None = None
     topic: Topic | None = None
+    followup_index: int | None = Field(default=None, ge=0, le=4)  # with followup_message: edit that follow-up
+    followup_message: LongText | None = None
 
 
 class OutreachRecord(Strict):
@@ -199,9 +240,62 @@ class OutreachRecord(Strict):
     message_is_draft: Literal[True] = True
     sent_by_system: Literal[False] = False
     sent_at: float | None = None  # when the human marked the message as sent
+    followups: list[FollowUp] = Field(default_factory=list, max_length=5)  # due `after_days` after sent_at, until a reply
+    template_id: str | None = None
     reply: Reply | None = None
     cost_usd: float = 0.0
     error: str | None = None
+
+
+# ---------------------------------------------------------------------------- message templates
+
+# {{name}}, {{vorname}}, {{nachname}}, {{firma}}, {{rolle}} and {{website}} come from the contact; any other {{…}} is
+# an instruction for the model, e.g. {{Eisbrecher mit Bezug zur Firma, 1–2 Sätze}}. Everything outside the braces
+# stays word for word.
+PLACEHOLDER = re.compile(r'\{\{\s*(.+?)\s*\}\}', re.S)
+VARIABLES = ('name', 'vorname', 'nachname', 'firma', 'rolle', 'website')
+FIELD_MAX = 400  # characters per model-written field
+
+
+def placeholders(text):
+    return [m.group(1) for m in PLACEHOLDER.finditer(text or '')]
+
+
+def is_variable(inner):
+    return sb.norm(inner) in VARIABLES
+
+
+def model_fields(texts):
+    """The model-written placeholders of all texts, unique, in order of appearance."""
+    found = []
+    for text in texts:
+        for inner in placeholders(text):
+            if not is_variable(inner) and inner not in found: found.append(inner)
+    return found
+
+
+def name_parts(name):
+    words = [w for w in (name or '').split() if sb.norm(w).strip('.,') not in sb.TITLE_WORDS]
+    return (words[0], words[-1]) if words else ('', '')
+
+
+def fill_template(text, variables, fields):
+    """Replace variables and model-written fields; a missing value leaves no stray space or blank lines."""
+    def value(m):
+        key = sb.norm(m.group(1))
+        return variables.get(key) or '' if key in VARIABLES else fields.get(m.group(1).strip()) or ''
+    out = PLACEHOLDER.sub(value, text or '')
+    out = re.sub(r'[ \t]+([,.!?])', r'\1', re.sub(r'[ \t]{2,}', ' ', out))
+    return re.sub(r'\n[ \t]*\n(?:[ \t]*\n)+', '\n\n', out).strip()
+
+
+def due_followup(record, now):
+    """Index of the follow-up to send now: the first unsent one whose day has come, while no answer arrived."""
+    if record.get('status') != 'sent' or not record.get('sent_at'): return None
+    for i, f in enumerate(record.get('followups') or []):
+        if not f.get('sent_at'):
+            return i if now >= record['sent_at'] + f['after_days'] * 86400 else None
+    return None
 
 
 # ---------------------------------------------------------------------------- persistence
@@ -343,18 +437,37 @@ def inbox_conversations(rows):
     return found
 
 
+def name_pair(name):
+    """(first, last) name tokens without titles, or None when the name has fewer than two."""
+    tokens = sb.name_key(name or '')
+    return (tokens[0], tokens[-1]) if len(tokens) >= 2 else None
+
+
 def replied_contacts(records, conversations):
     """Ids of contacts whose conversation ends with their message, matched by first and last name; a name
     shared by two contacts or two conversations is left to the human (no guess)."""
-    def key(name):
-        tokens = sb.name_key(name or '')
-        return (tokens[0], tokens[-1]) if len(tokens) >= 2 else None
     talks, contacts = {}, {}
     for name, theirs in conversations:
-        if key(name): talks.setdefault(key(name), []).append(theirs)
+        if name_pair(name): talks.setdefault(name_pair(name), []).append(theirs)
     for r in records:
-        if key(r.get('name')): contacts.setdefault(key(r.get('name')), []).append(r['id'])
+        if name_pair(r.get('name')): contacts.setdefault(name_pair(r.get('name')), []).append(r['id'])
     return [ids[0] for k, ids in contacts.items() if len(ids) == 1 and talks.get(k) == [True]]
+
+
+def listed_contacts(records, people):
+    """Ids of contacts on an invitation/connection list ([(profile path, name)] as the reader returns it):
+    by profile URL, otherwise by a first and last name that is unique on both sides (no guess)."""
+    entries = [tuple(e) for e in (people or []) if isinstance(e, (list, tuple)) and len(e) == 2
+               and all(isinstance(x, str) for x in e)]
+    paths = {profile_key('https://www.linkedin.com' + p) for p, _ in entries}
+    names = Counter(name_pair(n) for _, n in entries if name_pair(n))
+    contacts = Counter(name_pair(r.get('name')) for r in records if name_pair(r.get('name')))
+    found = []
+    for r in records:
+        pair = name_pair(r.get('name'))
+        if profile_key(r['linkedin_url']) in paths or (pair and names[pair] == 1 and contacts[pair] == 1):
+            found.append(r['id'])
+    return found
 
 
 # Rows of the conversation list: the visible text of each list item that links to a thread (not opened).
@@ -370,10 +483,33 @@ INBOX_EXPRESSION = ('(() => {' + BLOCK_JS + ' const rows = [], seen = new Set();
                     ' return {href: location.href, rows, blocked}; })()')
 
 
+def people_expression(actions):
+    """Profiles on the sent-invitations or connections page as [path, name]. An entry counts only when a card
+    around its link holds exactly one profile and one of `actions` (Zurückziehen / Nachricht), so a
+    suggestion box on the same page never counts as an invitation or a connection."""
+    return ('(() => {' + BLOCK_JS +
+            ' const main = document.querySelector("main") || document.body;'
+            ' const path = (a) => { const m = (a.pathname || "").match(/^\\/in\\/[^/]+/); return m ? m[0] : null; };'
+            ' const actions = [' + ','.join(json.dumps(x) for x in actions) + '];'
+            ' const hasAction = (n) => [...n.querySelectorAll("button, a, [role=\\"button\\"]")].some((b) => !path(b) &&'
+            '   actions.some((x) => ((b.innerText || "") + " " + (b.getAttribute("aria-label") || "")).toLowerCase().includes(x)));'
+            ' const inCard = (a) => { for (let n = a.parentElement, i = 0; n && n !== main && i < 10; n = n.parentElement, i++) {'
+            '   if (new Set([...n.querySelectorAll(\'a[href*="/in/"]\')].map(path).filter(Boolean)).size > 1) return false;'
+            '   if (hasAction(n)) return true; } return false; };'
+            ' const found = new Map();'
+            ' for (const a of main.querySelectorAll(\'a[href*="/in/"]\')) { const p = path(a); if (!p) continue;'
+            '  const name = (a.innerText || "").split("\\n").map((s) => s.trim()).filter(Boolean)[0] || "";'
+            '  if (found.has(p)) { if (!found.get(p)) found.set(p, name); continue; }'
+            f'  if (found.size >= {LIST_ROWS}) break;'
+            '  if (inCard(a)) found.set(p, name); }'
+            ' return {href: location.href, people: [...found], blocked}; })()')
+
+
 class BrowserProfileReader:
     """Opens a page in a BACKGROUND tab of the shared Chromium via CDP, reads visible text, closes the tab.
-    No clicks, no typing, no scrolling beyond page load: the profile top card (connection state) or the
-    conversation list of the inbox (reply check; no thread is opened)."""
+    No clicks, no typing, no scrolling beyond page load: the profile top card (connection state), the
+    sent-invitations and connections lists (invitation look) or the conversation list of the inbox (reply
+    check; no thread is opened)."""
     def __init__(self, cdp='http://127.0.0.1:9222', timeout=25):
         self.cdp, self.timeout = cdp, timeout
 
@@ -389,6 +525,16 @@ class BrowserProfileReader:
         """(conversation rows, final URL). Rows stay in memory: the caller keeps only matched contact ids."""
         value = self.open(INBOX_URL, INBOX_EXPRESSION, lambda v: bool(v.get('rows')) or login_wall(v.get('href')))
         return value.get('rows') or [], value.get('href') or INBOX_URL
+
+    def read_list(self, url):
+        """([(profile path, name)], final URL) from SENT_URL or CONNECTIONS_URL. The caller keeps only matched
+        contact ids. An empty list may just be unrendered: it never proves anything."""
+        counts = []
+        def ready(value):  # the list renders in pieces: wait until two reads agree
+            counts.append(len(value.get('people') or []))
+            return login_wall(value.get('href')) or (counts[-1] > 0 and counts[-2:] == [counts[-1]] * 2)
+        value = self.open(url, people_expression(CARD_ACTIONS[url]), ready)
+        return value.get('people') or [], value.get('href') or url
 
     def open(self, url, expression, ready):
         import urllib.request
@@ -450,9 +596,11 @@ class OutreachWriter:
 
     def note(self, request):
         """Name/headline from the search index + a short note (or none). Returns (fields, cost_usd)."""
+        if request.name and not request.connection_note:  # nothing to look up or write: no paid call
+            return {'name': request.name, 'headline': request.headline, 'connection_note': None}, 0.0
         meter = self.meter(request, 90)
         p = self.providers_factory(meter)
-        name, headline = self.profile(p, request)
+        name, headline = (request.name, request.headline) if request.name else self.profile(p, request)
         fields = {'name': name, 'headline': headline, 'connection_note': None}
         if request.connection_note:
             o = p.llm(f'Write a LinkedIn connection request note in {lang_name(request.language)}, at most '
@@ -490,24 +638,49 @@ class OutreachWriter:
         return website, pages
 
     def research(self, request, record):
-        """After acceptance: findings with verbatim evidence + message draft. Returns updated fields, cost."""
+        """After acceptance: findings with verbatim evidence + message draft (+ follow-ups). Returns updated fields, cost.
+        A template with {{placeholders}} is kept word for word: variables come from the contact, the model only writes
+        the other fields. A template of variables only needs no paid call at all."""
+        fixed = bool(placeholders(request.template))
+        fields_wanted = model_fields(([request.template] if fixed else []) + [f.message for f in request.followups])
+        first, last = name_parts(record.get('name'))
+        variables = {'name': record.get('name'), 'vorname': first, 'nachname': last, 'rolle': record.get('headline'),
+                     'firma': request.company_name or record.get('company_name'),
+                     'website': record.get('company_website') or request.company_website}
+        if fixed and not fields_wanted:
+            return {'message': fill_template(request.template, variables, {})[:4000], 'followups': self.followups(request, variables, {}),
+                    'findings': [], 'sources': [], 'error': None}, 0.0
         meter = self.meter(request)
         p = self.providers_factory(meter)
         website, pages = self.site_pages(p, request, record.get('headline'))
+        variables['website'] = variables['website'] or website
+        if not variables['firma'] and website: variables['firma'] = (urlsplit(website).hostname or '').removeprefix('www.')
         corpus = {u: t for u, t in pages}
         sources = '\n\n'.join(f'### SOURCE {u}\n{t}' for u, t in pages) or '(no website text found)'
-        o = p.llm(
-            f'You prepare a personal LinkedIn message after a connection was accepted. Language: {lang_name(request.language)}. '
-            f'Recipient: {record.get("name") or "unknown"} ({record.get("headline") or "no headline"}) at '
-            f'{request.company_name or website}. Topic we offer: {request.topic}.\n'
-            'Step 1: from the SOURCES only, find up to 5 concrete reasons why this company could need the topic and WHERE '
-            '(business area, product, process, team, location, hiring need). Each finding needs an exact quote (verbatim substring '
-            'of one source) and that source URL; "need" and "where" at most 120 characters each. No quote, no finding. '
-            'Never invent facts.\n'
-            f'Step 2: write the message (max {request.message_max_chars} characters) using only those findings; no '
-            'invented numbers, clients or claims; no links unless the guidance asks for one.\n'
-            f'SENDER GUIDANCE / TEMPLATE (follow structure and tone): {request.template or "short, personal, one clear question at the end"}\n'
-            'Return {"findings": [{"need": str, "where": str, "quote": str, "url": str}], "message": str}.\n\nSOURCES:\n' + sources)
+        steps = [f'You prepare a personal LinkedIn message after a connection was accepted. Language: {lang_name(request.language)}. '
+                 f'Recipient: {record.get("name") or "unknown"} ({record.get("headline") or "no headline"}) at '
+                 f'{request.company_name or website}. Topic we offer: {request.topic}.',
+                 'Step 1: from the SOURCES only, find up to 5 concrete reasons why this company could need the topic and WHERE '
+                 '(business area, product, process, team, location, hiring need). Each finding needs an exact quote (verbatim substring '
+                 'of one source) and that source URL; "need" and "where" at most 120 characters each. No quote, no finding. '
+                 'Never invent facts.']
+        if not fixed:
+            steps.append(f'Step 2: write the message (max {request.message_max_chars} characters) using only those findings; no '
+                         'invented numbers, clients or claims; no links unless the guidance asks for one.\n'
+                         f'SENDER GUIDANCE / TEMPLATE (follow structure and tone): {request.template or "short, personal, one clear question at the end"}')
+        if fields_wanted:
+            marked = [PLACEHOLDER.sub(lambda m: f'[[{fields_wanted.index(m.group(1)) + 1}]]' if m.group(1) in fields_wanted else m.group(0), t)
+                      for t in ([request.template] if fixed else []) + [f.message for f in request.followups]]
+            steps.append('Step 3: the sender wrote fixed texts with numbered FIELDS [[n]] for you. Write only the text that replaces each '
+                         'field, following its instruction; it must fit the surrounding sentences in tone, language and form of address '
+                         '(Sie or du, as the text uses). Plain text, no brackets or placeholders, no greeting or sign-off, at most '
+                         f'{FIELD_MAX - 100} characters unless the instruction asks for less. Facts about the company or person only from '
+                         'the SOURCES; if they give nothing usable, write something friendly and general without facts.\n'
+                         'FIXED TEXTS:\n' + '\n---\n'.join(marked) + '\nFIELDS:\n' +
+                         '\n'.join(f'{i + 1}: {inner}' for i, inner in enumerate(fields_wanted)))
+        keys = '"findings": [{"need": str, "where": str, "quote": str, "url": str}]' + (', "message": str' if not fixed else '') + \
+               (', "fields": {"1": str, …}' if fields_wanted else '')
+        o = p.llm('\n'.join(steps) + '\nReturn {' + keys + '}.\n\nSOURCES:\n' + sources)
         findings = []
         for f in o.get('findings') or []:
             url, quote = f.get('url'), (f.get('quote') or '').strip()
@@ -519,9 +692,19 @@ class OutreachWriter:
                                                         'quote': exact[:600], 'url': url}).model_dump())
             except ValueError:
                 continue
-        message = (o.get('message') or '').strip()[:request.message_max_chars].rstrip() or None
+        written = o.get('fields') if isinstance(o.get('fields'), dict) else {}
+        fields = {inner: sb.sanitize(re.sub(r'\[\[\d+\]\]|\{\{.*?\}\}', '', str(written.get(str(i + 1)) or '')), FIELD_MAX) or ''
+                  for i, inner in enumerate(fields_wanted)}  # stray field markers never reach the message
+        if fixed: message = fill_template(request.template, variables, fields)[:4000] or None
+        else: message = (o.get('message') or '').strip()[:request.message_max_chars].rstrip() or None
+        error = 'field_missing' if any(not v for v in fields.values()) else None if findings else 'research_thin'
         return {'company_website': website, 'findings': findings[:8], 'sources': [u for u, _ in pages][:10], 'message': message,
-                'error': None if findings else 'research_thin'}, meter.cost_micro / 1_000_000
+                'followups': self.followups(request, variables, fields), 'error': error}, meter.cost_micro / 1_000_000
+
+    @staticmethod
+    def followups(request, variables, fields):
+        return [{'after_days': f.after_days, 'message': fill_template(f.message, variables, fields)[:4000], 'sent_at': None}
+                for f in request.followups]
 
 
 # ---------------------------------------------------------------------------- service + background loop
@@ -570,15 +753,17 @@ class OutreachService:
         delay = REPLY_CHECK_HOURS * 3600 * random.uniform(1.0, 1.2) * factor
         self.store.set_meta('next_inbox_check', next_active_at(now + delay))
 
-    def inbox_reads_today(self, now):
+    def reads_today(self, kind, now):
+        """Restart-safe count of `kind` page reads ('inbox', 'invite') in the local calendar day."""
         local = time.localtime(now)
         day = time.mktime((local.tm_year, local.tm_mon, local.tm_mday, 0, 0, 0, 0, 0, -1))
-        return int(self.store.meta('inbox_reads') or 0) if abs((self.store.meta('inbox_day') or 0) - day) < 1 else 0
+        return int(self.store.meta(kind + '_reads') or 0) if abs((self.store.meta(kind + '_day') or 0) - day) < 1 else 0
 
-    def note_inbox_read(self, now):
+    def note_read(self, kind, now):
         local = time.localtime(now)
-        self.store.set_meta('inbox_day', time.mktime((local.tm_year, local.tm_mon, local.tm_mday, 0, 0, 0, 0, 0, -1)))
-        self.store.set_meta('inbox_reads', self.inbox_reads_today(now) + 1)
+        count = self.reads_today(kind, now) + 1
+        self.store.set_meta(kind + '_day', time.mktime((local.tm_year, local.tm_mon, local.tm_mday, 0, 0, 0, 0, 0, -1)))
+        self.store.set_meta(kind + '_reads', count)
 
     def registry_ref(self, record_or_request):
         get = (lambda k: getattr(record_or_request, k, None)) if not isinstance(record_or_request, dict) else record_or_request.get
@@ -604,16 +789,17 @@ class OutreachService:
         if existing: return existing, False  # no second note, no second charge
         self.registry_gate(request)  # before any paid call
         now = time.time()
+        manual = not (self.connector and request.auto_connect)
         record = {'id': secrets.token_urlsafe(24), 'status': 'awaiting_connection', 'created_at': now, 'updated_at': now,
                   'linkedin_url': request.linkedin_url, 'campaign_id': campaign_id,
                   'company_website': request.company_website,
-                  'company_name': request.company_name, 'topic': request.topic,
+                  'company_name': request.company_name, 'topic': request.topic or '',
+                  # a request sent by hand is followed through the sent-invitations list, not by profile views
                   'connection': {'state': 'unknown', 'checks': 0, 'last_checked_at': None,
-                                 'next_check_at': now + CHECK_INTERVAL_HOURS * 3600},
-                  'connect': {'state': 'not_sent', 'attempts': 0, 'next_attempt_at': now}
-                             if self.connector and request.auto_connect
-                             else {'state': 'manual', 'attempts': 0},
-                  'cost_usd': 0.0, 'error': None}
+                                 'next_check_at': None if manual and INVITE_CHECK else now + CHECK_INTERVAL_HOURS * 3600},
+                  'connect': {'state': 'manual', 'attempts': 0, 'opened_at': now if request.opened else None} if manual
+                             else {'state': 'not_sent', 'attempts': 0, 'next_attempt_at': now},
+                  'template_id': request.template_id, 'cost_usd': 0.0, 'error': None}
         try:
             fields, cost = self.writer.note(request)
             record.update(fields); record['cost_usd'] += cost
@@ -636,9 +822,36 @@ class OutreachService:
         if patch.message is not None:
             if record['status'] not in ('researching', 'ready', 'failed', 'sent', 'replied'):
                 raise ValueError('message_not_available')
-            record['message'] = patch.message[:request.message_max_chars].rstrip() or None
+            limit = 4000 if placeholders(request.template) else request.message_max_chars  # a fixed text is never cut short
+            record['message'] = patch.message[:limit].rstrip() or None
+        if patch.followup_message is not None:
+            followups = record.get('followups') or []
+            if patch.followup_index is None or patch.followup_index >= len(followups): raise ValueError('followup_not_available')
+            followups[patch.followup_index]['message'] = patch.followup_message.strip()
         if patch.topic is not None: record['topic'] = patch.topic
         self.store.save(record)
+        return record
+
+    def mark_opened(self, ident):
+        """The human opened the profile to connect by hand (a contact an agent or campaign created earlier)."""
+        _, record = self.store.get(ident)
+        if not record: return None
+        info = record.setdefault('connect', {})
+        if record['status'] == 'awaiting_connection' and not info.get('opened_at'):
+            info['opened_at'] = time.time()
+            self.store.save(record)
+        return record
+
+    def mark_followup_sent(self, ident, index):
+        """The human copied follow-up `index` into LinkedIn; earlier ones must be sent first."""
+        _, record = self.store.get(ident)
+        if not record: return None
+        followups = record.get('followups') or []
+        if record['status'] != 'sent' or not 0 <= index < len(followups): raise ValueError('followup_not_available')
+        if any(not f.get('sent_at') for f in followups[:index]): raise ValueError('earlier_followup_open')
+        if not followups[index].get('sent_at'):
+            followups[index]['sent_at'] = time.time()
+            self.store.save(record)
         return record
 
     def mark_do_not_contact(self, ident):
@@ -663,7 +876,7 @@ class OutreachService:
         if record['status'] in ('awaiting_connection', 'expired', 'failed'):
             record['status'] = 'connected'
             record['connection']['next_check_at'] = None
-            if (record.get('connect') or {}).get('state') in (None, 'not_sent', 'sending', 'failed'):
+            if (record.get('connect') or {}).get('state') in (None, 'not_sent', 'sending', 'failed', 'manual'):
                 record['connect'] = {**(record.get('connect') or {}), 'state': 'sent', 'next_attempt_at': None,
                                      'sent_at': time.time(), 'error': None}
             self.store.save(record)
@@ -693,6 +906,15 @@ class OutreachService:
             self.registry_set(record, 'contacted')  # in conversation: blocked for other agents
         return record
 
+    def mark_reply_handled(self, ident):
+        """The human took care of the answer on LinkedIn; the contact stays `replied`."""
+        _, record = self.store.get(ident)
+        if not record: return None
+        if record['status'] == 'replied' and record.get('reply') and not record['reply'].get('handled_at'):
+            record['reply']['handled_at'] = time.time()
+            self.store.save(record)
+        return record
+
     def unmark_replied(self, ident):
         """Undo a wrong detection: back to the status before it."""
         _, record = self.store.get(ident)
@@ -707,7 +929,8 @@ class OutreachService:
         while not self.stop.is_set():
             try:
                 self.store.cleanup()
-                worked = self.research_one() or self.connect_one() or self.check_one() or self.reply_check()
+                worked = (self.research_one() or self.connect_one() or self.check_one() or self.invitation_check()
+                          or self.reply_check())
             except Exception:
                 worked = False  # never log lead/model data
             if not worked:
@@ -856,6 +1079,78 @@ class OutreachService:
         self.stop.wait(random.uniform(*self.spacing))
         return True
 
+    def invitation_check(self, manual=False):
+        """While contacts wait for acceptance, about every INVITE_CHECK_HOURS (at most INVITE_DAILY_CAP times a
+        local day, inside the active window): one read of the sent-invitations list and one of the newest
+        connections (background tabs, no clicks). Listed under "sent" -> the invitation is pending (a request
+        sent by hand is now confirmed); among the newest connections -> connected, research starts. Not being
+        listed proves nothing: the contact stays as it is. Both lists stay in this function; only matched
+        contact ids are used. `manual` (a human asked for it) ignores schedule, window and cap, never a pause.
+        Returns counts after a look, None when nothing was read."""
+        now = time.time()
+        read = getattr(self.reader, 'read_list', None)
+        if not read or now < self.paused_until: return None
+        if not manual:
+            if not INVITE_CHECK or now < (self.store.meta('next_invite_check') or 0): return None
+            if not within_active_hours(now):
+                self.store.set_meta('next_invite_check', next_active_at(now))  # defer to the next daytime window
+                return None
+            if self.reads_today('invite', now) >= INVITE_DAILY_CAP: return None
+        waiting = self.store.list('awaiting_connection', limit=10000)
+        if not any(manual or now - r['created_at'] >= INVITE_GRACE for r in waiting): return None
+        self.store.set_meta('next_invite_check',
+                            next_active_at(now + INVITE_CHECK_HOURS * 3600 * random.uniform(0.9, 1.3)))
+        self.note_read('invite', now)
+        lists, href = {}, ''
+        with self.browser_lock:  # never in parallel with a browser-agent job, a profile check or the inbox read
+            try:
+                for url in (SENT_URL, CONNECTIONS_URL):
+                    lists[url], href = read(url)
+                    if login_wall(href) or blocked_page(href): break
+            except BrowserBlocked:
+                self.pause(now, BLOCK_PAUSE_HOURS)
+                return {'checked': False, 'reason': 'blocked'}
+            except Exception:
+                return {'checked': False, 'reason': 'unreadable'}  # retried at the next scheduled look
+        if blocked_page(href):
+            self.pause(now, BLOCK_PAUSE_HOURS)
+            return {'checked': False, 'reason': 'blocked'}
+        if login_wall(href):
+            self.pause(now, LOGIN_PAUSE_HOURS)
+            return {'checked': False, 'reason': 'login_required'}
+        self.store.set_meta('last_invite_check', now)  # last complete look
+        records = waiting + self.store.list('expired', limit=10000)  # a late acceptance still counts
+        connected = set(listed_contacts(records, lists[CONNECTIONS_URL]))
+        pending = set(listed_contacts(waiting, lists[SENT_URL])) - connected
+        for r in records:
+            if r['id'] in connected: self.apply_listed(r['id'], 'connected', now)
+            elif r['id'] in pending: self.apply_listed(r['id'], 'pending', now)
+            elif r['status'] == 'awaiting_connection' and now - r['created_at'] > EXPIRE_DAYS * 86400:
+                self.apply_listed(r['id'], 'expired', now)
+        return {'checked': True, 'sent_listed': len(lists[SENT_URL]), 'connections_listed': len(lists[CONNECTIONS_URL]),
+                'contacts_waiting': len(waiting), 'pending': len(pending), 'connected': len(connected)}
+
+    def apply_listed(self, ident, state, now):
+        """Outcome of a look for one contact: 'pending' (under "sent"), 'connected' (among the newest
+        connections) or 'expired' (not accepted within OUTREACH_EXPIRE_DAYS)."""
+        _, record = self.store.get(ident)  # fresh: a human may have changed it during the read
+        if not record or record['status'] not in ('awaiting_connection', 'expired'): return
+        if state == 'expired':
+            if record['status'] == 'awaiting_connection':
+                record['status'], record['connection']['next_check_at'] = 'expired', None
+                self.store.save(record); self.registry_set(record, 'expired')
+            return
+        conn, info = record['connection'], record.setdefault('connect', {})
+        if state == 'pending' and conn.get('state') == 'pending' and info.get('state') == 'sent': return  # nothing new
+        conn.update(state=state, last_checked_at=now)
+        if info.get('state') != 'sent':  # confirmed on LinkedIn: the box never sends this request again
+            info.update(state='sent', sent_at=info.get('sent_at') or now, next_attempt_at=None, error=None)
+        if state == 'connected':
+            record['status'], conn['next_check_at'] = 'connected', None
+            self.wake.set()
+        self.store.save(record)
+        self.registry_set(record, 'contacted')
+
     def reply_check(self):
         """While contacts wait for an answer, at most every REPLY_CHECK_HOURS: one read of the conversation
         list of the logged-in inbox (background tab, no thread opened, no clicks). A contact whose conversation
@@ -869,12 +1164,12 @@ class OutreachService:
         if not within_active_hours(now):
             self.store.set_meta('next_inbox_check', next_active_at(now))  # defer to the next daytime window
             return False
-        if self.inbox_reads_today(now) >= INBOX_DAILY_CAP: return False
+        if self.reads_today('inbox', now) >= INBOX_DAILY_CAP: return False
         waiting = [r for status in REPLY_WATCH for r in self.store.list(status, limit=10000)]
         if not waiting: return False
         self.schedule_inbox(now)
         self.store.set_meta('last_inbox_check', now)
-        self.note_inbox_read(now)
+        self.note_read('inbox', now)
         with self.browser_lock:  # never in parallel with a browser-agent discovery job or a profile check
             try:
                 rows, href = read()
@@ -918,9 +1213,26 @@ def inbox_check(directory=None, reader=None):
             'contacts_waiting': len(waiting), 'contacts_with_reply': len(replied_contacts(waiting, talks))}
 
 
+def invitations_check(directory=None, reader=None):
+    """Calibration, read-only: one read of the sent-invitations list and one of the newest connections in the
+    logged-in browser; returns counts only (no names) and changes nothing. Run it once after logging in."""
+    store = OutreachStore(directory or os.environ.get('DISCOVERY_DATA_DIR', '/opt/data/discovery-api'))
+    reader = reader or BrowserProfileReader()
+    try:
+        sent, sent_href = reader.read_list(SENT_URL)
+        newest, newest_href = reader.read_list(CONNECTIONS_URL)
+    except BrowserBlocked:
+        return {'blocked': True}  # challenge/rate-limit page: do not retry here
+    waiting = store.list('awaiting_connection', limit=10000)
+    return {'login_wall': login_wall(sent_href) or login_wall(newest_href), 'sent_listed': len(sent),
+            'connections_listed': len(newest), 'contacts_waiting': len(waiting),
+            'contacts_pending': len(listed_contacts(waiting, sent)), 'contacts_connected': len(listed_contacts(waiting, newest))}
+
+
 if __name__ == '__main__':
     import sys
-    if sys.argv[1:] != ['inbox-check']:
-        print('usage: outreach.py inbox-check', file=sys.stderr)
+    checks = {'inbox-check': inbox_check, 'invitations-check': invitations_check}
+    if len(sys.argv) != 2 or sys.argv[1] not in checks:
+        print('usage: outreach.py inbox-check | invitations-check', file=sys.stderr)
         sys.exit(2)
-    print(json.dumps(inbox_check(), indent=1))
+    print(json.dumps(checks[sys.argv[1]](), indent=1))

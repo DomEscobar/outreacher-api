@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import threading
+import time
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -22,13 +23,14 @@ from registry import (CheckResult, Registry, RegistryCheckRequest, RegistryEntry
 from response_models import JobResponse
 from search_memory import SearchMemory
 from store import Store, QueueFull
+from templates import TemplateRecord, TemplateRequest, TemplateStore
 from views import DiscoverySummary, LeadRow, SystemStatus, lead_rows, summarize, system_status
 from worker import Worker
 
 UI_FILE = Path(__file__).with_name('ui') / 'index.html'
 
 MAX_BODY = 16384
-MAX_BODY_BULK = 1_048_576  # registry check/import: up to 500 items per call
+MAX_BODY_BULK = 1_048_576  # registry check/import: up to 500 items per call; templates with long follow-ups
 
 
 class BodyLimit:
@@ -42,7 +44,7 @@ class BodyLimit:
             message = await receive()
             if message['type'] == 'http.disconnect': return
             body += message.get('body', b'')
-            if len(body) > (MAX_BODY_BULK if scope.get('path', '').startswith('/api/v1/registry') else MAX_BODY):
+            if len(body) > (MAX_BODY_BULK if scope.get('path', '').startswith(('/api/v1/registry', '/api/v1/templates')) else MAX_BODY):
                 await JSONResponse({'detail': 'request_too_large'}, status_code=413)(scope, receive, send)
                 return
             if not message.get('more_body'): break
@@ -73,6 +75,7 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
             app.state.store = Store(directory, max_queue, retention_days)
             browser_lock = threading.Lock()  # agent jobs and outreach checks never share Chromium at once
             app.state.registry = Registry(directory)
+            app.state.templates = TemplateStore(directory)
             outreach_store = OutreachStore(directory)
             stored_leads = [l for job in app.state.store.list(limit=100000) if job['result']
                             for l in json.loads(job['result']).get('leads') or []]
@@ -83,7 +86,7 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
                                                  browser_lock, start=start_worker, registry=app.state.registry,
                                                  connector=outreach_connector)
             app.state.campaigns = CampaignService(CampaignStore(directory), app.state.store, app.state.outreach,
-                                                  app.state.worker, start=start_worker)
+                                                  app.state.worker, start=start_worker, templates=app.state.templates)
             app.state.webhooks = WebhookDispatcher(WebhookStore(directory), app.state.outreach, app.state.store,
                                                    app.state.campaigns.store, start=start_worker)
             if start_worker: app.state.worker.start()
@@ -132,9 +135,12 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
                 'result': result, 'error': row['error']}
 
     @app.post('/api/v1/discoveries', status_code=202, response_model=JobResponse)
-    def submit(criteria: Criteria):
+    def submit(criteria: Criteria, template_id: str | None = Query(None, max_length=64)):
+        """`template_id`: the message template the leads of this search get (a "campaign" = search + template)."""
+        if template_id and not app.state.templates.get(template_id): raise HTTPException(404, 'template_not_found')
         try: ident = app.state.store.submit(criteria)
         except QueueFull: raise HTTPException(429, 'queue_full') from None
+        if template_id: app.state.templates.assign(ident, template_id)
         app.state.worker.wake.set()
         return render(get_job(ident))
 
@@ -156,6 +162,11 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
 
     @app.post('/api/v1/outreach', status_code=201, response_model=OutreachRecord)
     def outreach_create(request: OutreachRequest):
+        if request.template_id:  # a stored template: the contact keeps a copy of its texts
+            template = app.state.templates.get(request.template_id)
+            if not template: raise HTTPException(404, 'template_not_found')
+            request = OutreachRequest.model_validate({**request.model_dump(), 'template': template['message'],
+                                                     'followups': template['followups'], 'topic': template['topic'] or template['name']})
         try:
             ident, created = app.state.outreach.create(request)
         except OutreachConflict as exc:
@@ -191,6 +202,26 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
         get_outreach(ident)
         return app.state.outreach.mark_replied(ident)
 
+    @app.post('/api/v1/outreach/{ident}/opened', response_model=OutreachRecord)
+    def outreach_opened(ident: str):
+        """The human opened the profile to connect by hand (UI "Vernetzen ↗"). Agents never call this."""
+        get_outreach(ident)
+        return app.state.outreach.mark_opened(ident)
+
+    @app.post('/api/v1/outreach/{ident}/followups/{index}/sent', response_model=OutreachRecord)
+    def outreach_followup_sent(ident: str, index: int):
+        """The human copied this follow-up into LinkedIn (nothing is sent by the box)."""
+        get_outreach(ident)
+        try:
+            return app.state.outreach.mark_followup_sent(ident, index)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+
+    @app.post('/api/v1/outreach/{ident}/reply-handled', response_model=OutreachRecord)
+    def outreach_reply_handled(ident: str):
+        get_outreach(ident)
+        return app.state.outreach.mark_reply_handled(ident)
+
     @app.post('/api/v1/outreach/{ident}/no-reply', response_model=OutreachRecord)
     def outreach_no_reply(ident: str):
         get_outreach(ident)
@@ -198,12 +229,41 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
 
     @app.get('/api/v1/discoveries', response_model=list[DiscoverySummary])
     def discoveries_list(status: str | None = None, limit: int = Query(100, ge=1, le=1000)):
-        return [summarize(r) for r in app.state.store.list(status, limit)]
+        templates = app.state.templates.job_map()
+        return [{**summarize(r), 'template_id': templates.get(r['id'])} for r in app.state.store.list(status, limit)]
 
     @app.get('/api/v1/leads', response_model=list[LeadRow])
     def leads(verification: Literal['verified', 'plausible', 'linkedin', 'review'] | None = None,
               q: str | None = Query(None, max_length=160), limit: int = Query(500, ge=1, le=5000)):
-        return lead_rows(app.state.store, app.state.outreach.store, verification, q, limit, app.state.registry)
+        return lead_rows(app.state.store, app.state.outreach.store, verification, q, limit, app.state.registry,
+                         app.state.templates.job_map())
+
+    # -- message templates ("Vorlagen"), chosen per search
+    def get_template(ident):
+        record = app.state.templates.get(ident)
+        if not record: raise HTTPException(404, 'template_not_found')
+        return record
+
+    @app.get('/api/v1/templates', response_model=list[TemplateRecord])
+    def template_list():
+        return app.state.templates.list()
+
+    @app.post('/api/v1/templates', status_code=201, response_model=TemplateRecord)
+    def template_create(request: TemplateRequest):
+        return app.state.templates.save(request)
+
+    @app.get('/api/v1/templates/{ident}', response_model=TemplateRecord)
+    def template_get(ident: str):
+        return get_template(ident)
+
+    @app.put('/api/v1/templates/{ident}', response_model=TemplateRecord)
+    def template_update(ident: str, request: TemplateRequest):
+        get_template(ident)
+        return app.state.templates.save(request, ident)
+
+    @app.delete('/api/v1/templates/{ident}', status_code=204)
+    def template_delete(ident: str):
+        if not app.state.templates.delete(ident): raise HTTPException(404, 'template_not_found')
 
     @app.get('/api/v1/status', response_model=SystemStatus)
     def status():
@@ -236,6 +296,16 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
     def outreach_check_connection(ident: str):
         get_outreach(ident)
         return app.state.outreach.check_connection(ident)
+
+    @app.post('/api/v1/outreach/sync-invitations')
+    def outreach_sync_invitations():
+        """Read the sent invitations and the newest connections now (read-only, counts only). Ignores the
+        schedule and the daily cap (a deliberate user action), never a pause."""
+        result = app.state.outreach.invitation_check(manual=True)
+        if result is None:
+            paused = app.state.outreach.paused_until > time.time()
+            return {'checked': False, 'reason': 'paused' if paused else 'nothing_waiting'}
+        return result
 
     @app.post('/api/v1/outreach/resume')
     def outreach_resume():
@@ -271,6 +341,11 @@ def create_app(directory=None, origin=None, backend=None, start_worker=True, max
 
     @app.post('/api/v1/campaigns', status_code=201, response_model=CampaignRecord)
     def campaign_create(request: CampaignRequest):
+        if request.template_id:  # the campaign keeps a copy of the template's texts
+            template = app.state.templates.get(request.template_id)
+            if not template: raise HTTPException(404, 'template_not_found')
+            request = CampaignRequest.model_validate({**request.model_dump(), 'template': template['message'],
+                                                      'followups': template['followups'], 'topic': template['topic'] or template['name']})
         record = app.state.campaigns.store.create(request)
         app.state.campaigns.wake.set()
         return record

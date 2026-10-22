@@ -6,19 +6,20 @@
 <title>Hermes Leads</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%2318181b'/%3E%3C/svg%3E">
 <style>
+/* Colour carries one meaning each: grey = waiting/neutral, blue = your turn, green = done/answered, amber = check this, red = problem. */
 :root {
-  --bg: #fafaf9; --surface: #f2f2f0; --surface-2: #e9e9e6; --text: #18181b; --muted: #71717a; --faint: #a1a1aa;
-  --line: rgba(24, 24, 27, .07); --accent: #18181b; --on-accent: #fafaf9; --focus: rgba(24, 24, 27, .18);
-  --ok: #166534; --ok-bg: rgba(22, 101, 52, .08); --info: #1e40af; --info-bg: rgba(30, 64, 175, .07);
-  --warn: #92400e; --warn-bg: rgba(146, 64, 14, .08); --bad: #991b1b; --bad-bg: rgba(153, 27, 27, .07);
-  --radius: 10px; --gap: 24px;
+  --bg: #f4f4f2; --surface: #ffffff; --surface-2: #eaeae7; --text: #18181b; --muted: #5c5c66; --faint: #6e6e78;
+  --line: rgba(24, 24, 27, .09); --accent: #18181b; --on-accent: #fafaf9; --focus: #2563eb;
+  --ok: #15803d; --ok-bg: rgba(21, 128, 61, .09); --info: #1d4ed8; --info-bg: rgba(29, 78, 216, .08);
+  --warn: #a16207; --warn-bg: rgba(161, 98, 7, .09); --bad: #b91c1c; --bad-bg: rgba(185, 28, 28, .08);
+  --radius: 12px; --page: 920px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e0e10; --surface: #17171a; --surface-2: #202024; --text: #ececee; --muted: #9b9ba3; --faint: #64646c;
-    --line: rgba(236, 236, 238, .07); --accent: #ececee; --on-accent: #0e0e10; --focus: rgba(236, 236, 238, .2);
-    --ok: #86efac; --ok-bg: rgba(134, 239, 172, .08); --info: #93c5fd; --info-bg: rgba(147, 197, 253, .08);
-    --warn: #fcd34d; --warn-bg: rgba(252, 211, 77, .08); --bad: #fca5a5; --bad-bg: rgba(252, 165, 165, .08);
+    --bg: #0e0e10; --surface: #17171a; --surface-2: #24242a; --text: #ececee; --muted: #a3a3ad; --faint: #8a8a94;
+    --line: rgba(236, 236, 238, .08); --accent: #ececee; --on-accent: #0e0e10; --focus: #93c5fd;
+    --ok: #86efac; --ok-bg: rgba(134, 239, 172, .09); --info: #93c5fd; --info-bg: rgba(147, 197, 253, .09);
+    --warn: #fcd34d; --warn-bg: rgba(252, 211, 77, .08); --bad: #fca5a5; --bad-bg: rgba(252, 165, 165, .09);
   }
 }
 * { box-sizing: border-box; }
@@ -27,38 +28,56 @@ body { font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter
 a { color: inherit; text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 button, input, textarea, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }  /* also for elements whose class sets a display */
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
 .num { font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
 .small { font-size: 12.5px; }
 
-/* header */
-header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); }
-.bar { max-width: 1180px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 28px; }
-.brand { font-weight: 600; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.brand i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); display: inline-block; }
-.brand i.ok { background: #22c55e; } .brand i.bad { background: #ef4444; }
-nav { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
-nav button { background: none; border: 0; padding: 6px 12px; border-radius: 8px; color: var(--muted); cursor: pointer; white-space: nowrap; }
-nav button:hover { color: var(--text); }
-nav button[aria-current="page"] { color: var(--text); background: var(--surface); }
-.desk { color: var(--muted); white-space: nowrap; }
+/* header: same width as the page, nothing but the brand and three entries */
+header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(8px); }
+.bar { max-width: var(--page); margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 24px; }
+.brand { font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+nav { display: flex; gap: 2px; flex: 1; align-items: center; }
+nav button, nav summary { background: none; border: 0; padding: 6px 12px; border-radius: 8px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+nav button:hover, nav summary:hover { color: var(--text); }
+nav > button[aria-current="page"], nav summary[aria-current="page"] { color: var(--text); background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+nav summary::after { content: ' ▾'; font-size: 11px; }
 
-main { max-width: 1180px; margin: 0 auto; padding: 12px 24px 80px; }
+/* popover menus (Mehr, ⋯) */
+.pop { position: relative; }
+.pop > summary { list-style: none; } .pop > summary::-webkit-details-marker { display: none; }
+#nav .pop > summary::before, .pop > summary::before { content: none; }
+.menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; background: var(--surface); border-radius: 10px; padding: 6px;
+  box-shadow: 0 0 0 1px var(--line), 0 12px 30px rgba(0, 0, 0, .14); display: grid; min-width: 200px; }
+.menu.right { left: auto; right: 0; }
+.menu button, .menu a { display: block; text-align: left; background: none; border: 0; padding: 7px 10px; border-radius: 7px; color: var(--text); cursor: pointer; white-space: nowrap; }
+.menu button:hover, .menu a:hover { background: var(--surface-2); text-decoration: none; }
+.menu small { display: block; color: var(--muted); font-size: 12px; }
+
+main { max-width: var(--page); margin: 0 auto; padding: 8px 24px 80px; }
 section[hidden] { display: none; }
-h1 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 18px 0 4px; }
-h2 { font-size: 13px; font-weight: 500; color: var(--muted); margin: 32px 0 10px; text-transform: none; }
-.lead-in { color: var(--muted); margin: 0 0 20px; }
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -.02em; margin: 18px 0 2px; }
+h2, .label { font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 30px 0 10px; }
+.lead-in { color: var(--muted); margin: 0 0 22px; }
+
+/* banner: only when something actually needs fixing */
+.banner { display: grid; gap: 8px; margin-top: 14px; padding: 14px 16px; border-radius: var(--radius); background: var(--warn-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 30%, transparent); }
+.banner p { margin: 0; } .banner b { color: var(--warn); font-weight: 600; }
+.banner .row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* tiles */
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 20px; }
-.tile { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; box-shadow: 0 0 0 1px var(--line); }
 .tile b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
 .tile span { color: var(--muted); font-size: 12.5px; }
 
 /* panels & forms */
-.panel { background: var(--surface); border-radius: var(--radius); padding: 20px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 16px; }
+.panel { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: 0 0 0 1px var(--line); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 16px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field.wide { grid-column: 1 / -1; }
 label { font-size: 12.5px; color: var(--muted); }
@@ -67,96 +86,158 @@ input[type=text], input[type=url], input[type=number], input[type=search], texta
   box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow .12s;
 }
 textarea { resize: vertical; min-height: 84px; line-height: 1.45; }
-input:focus, textarea:focus, select:focus { box-shadow: inset 0 0 0 1px var(--faint), 0 0 0 3px var(--focus); }
+input:focus, textarea:focus, select:focus { box-shadow: inset 0 0 0 1px var(--focus), 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent); }
 .check { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
 .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
 .btn { border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: var(--surface-2); color: var(--text); white-space: nowrap; }
-.btn:hover { filter: brightness(.97); }
+.btn:hover { filter: brightness(.96); }
 .btn.primary { background: var(--accent); color: var(--on-accent); }
-.btn.ghost { background: transparent; color: var(--muted); padding: 6px 10px; }
-.btn.ghost:hover { color: var(--text); background: var(--surface); }
+.btn.ghost { background: transparent; color: var(--muted); padding: 8px 10px; }
+.btn.ghost:hover { color: var(--text); background: var(--surface-2); filter: none; }
 .btn.danger { background: transparent; color: var(--bad); }
+.btn.link { background: none; padding: 0; color: var(--text); text-decoration: underline; text-decoration-color: var(--line);
+  text-underline-offset: 3px; font-size: inherit; }
+.btn.link:hover { text-decoration-color: currentColor; filter: none; }
 .btn:disabled { opacity: .45; cursor: default; }
+.chip { border: 0; border-radius: 999px; padding: 4px 11px; font-size: 12.5px; background: var(--surface-2); color: var(--text); cursor: pointer; white-space: nowrap; }
+.chip:hover { filter: brightness(.95); }
+.chip:disabled { opacity: .55; cursor: default; }
 .err { color: var(--bad); font-size: 13px; }
 
-/* pills */
+/* pills: neutral unless it is your turn (blue), done (green), to check (amber) or a problem (red) */
 .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
-.pill.verified, .pill.succeeded, .pill.ready, .pill.connected { background: var(--ok-bg); color: var(--ok); }
-.pill.plausible, .pill.running, .pill.researching, .pill.queued { background: var(--info-bg); color: var(--info); }
-.pill.review, .pill.partial, .pill.awaiting_connection, .pill.expired, .pill.pending { background: var(--warn-bg); color: var(--warn); }
-.pill.failed, .pill.timed_out, .pill.blocked, .pill.login_required, .pill.do_not_contact, .pill.excluded { background: var(--bad-bg); color: var(--bad); }
-.pill.in_outreach, .pill.customer { background: var(--info-bg); color: var(--info); }
-.pill.contacted, .pill.replied { background: var(--ok-bg); color: var(--ok); }
-.note { font-size: 12px; color: var(--warn); }
+.pill.ready, .pill.running, .pill.queued { background: var(--info-bg); color: var(--info); }
+.pill.succeeded, .pill.replied, .pill.customer { background: var(--ok-bg); color: var(--ok); }
+.pill.review, .pill.partial { background: var(--warn-bg); color: var(--warn); }
+.pill.failed, .pill.timed_out, .pill.blocked, .pill.login_required, .pill.do_not_contact { background: var(--bad-bg); color: var(--bad); }
+.note { font-size: 12.5px; color: var(--muted); }
 
 /* tables */
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-weight: 500; font-size: 12.5px; color: var(--muted); padding: 8px 10px; }
 td { padding: 11px 10px; border-top: 1px solid var(--line); vertical-align: top; }
 tbody tr { cursor: pointer; }
-tbody tr:hover td { background: var(--surface); }
-tr.open td { background: var(--surface); }
+tbody tr:hover td, tr.open td { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
 td .sub { color: var(--muted); font-size: 12.5px; }
 .empty { color: var(--muted); padding: 28px 10px; }
 .scroll { overflow-x: auto; }
 
 /* toolbar */
 .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 4px 0 14px; }
-.toolbar input[type=search] { max-width: 320px; }
-.seg { display: inline-flex; background: var(--surface); border-radius: 8px; padding: 3px; gap: 2px; }
-.seg button { border: 0; background: none; padding: 5px 11px; border-radius: 6px; color: var(--muted); cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--bg); color: var(--text); }
+.toolbar input[type=search] { max-width: 300px; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: none; padding: 5px 11px; border-radius: 7px; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+
+/* disclosure: a small chevron instead of +/– */
+details summary { cursor: pointer; color: var(--muted); list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details > summary::before { content: '▸'; display: inline-block; width: 1.1em; font-size: 11px; transition: transform .15s; }
+details[open] > summary::before { transform: rotate(90deg); }
 
 /* evidence */
 .evidence { display: grid; gap: 10px; padding: 4px 0 6px; }
 .quote { border-left: 2px solid var(--surface-2); padding: 2px 0 2px 12px; white-space: pre-wrap; }
 .quote .src { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
 
-/* outreach split */
-.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: var(--gap); align-items: start; }
-@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+/* contacts: list + detail */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
 .list { display: grid; gap: 2px; }
-.item { padding: 12px 12px; border-radius: 8px; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
-.item:hover, .item.open { background: var(--surface); }
+.item { padding: 11px 12px; border-radius: 9px; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; }
+.item:hover { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+.item.open { background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
 .item .sub { color: var(--muted); font-size: 12.5px; }
 .detail { position: sticky; top: 76px; }
 .block { margin-bottom: 22px; }
-.block h3 { font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
+.block h3 { font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .text { white-space: pre-wrap; background: var(--bg); border-radius: 8px; padding: 12px 14px; }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; font-size: 13px; margin: 0; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; }
-details summary { cursor: pointer; color: var(--muted); list-style: none; }
-details summary::-webkit-details-marker { display: none; }
-details summary::before { content: '+ '; } details[open] summary::before { content: '– '; }
 
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--accent); color: var(--on-accent);
-  padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+/* today: one decision per card, four text levels at most */
+.today { display: grid; gap: 22px; }
+.today > :empty { display: none; }
+.today .label { margin: 0 0 8px; }
+.cards { display: grid; gap: 10px; }
+.card { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 4px; box-shadow: 0 0 0 1px var(--line); }
+.card .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.card .who { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; min-width: 0; }
+.card .meta { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.card .meta.ok { color: var(--ok); } .card .meta.warn { color: var(--warn); } .card .meta.info { color: var(--info); }
+.card .sub { font-size: 13px; color: var(--muted); }
+.card .preview { font-size: 13.5px; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.card .hint { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+.card textarea { min-height: 190px; margin-top: 8px; }
+.card .field { margin-top: 8px; }
+.card.done .who { color: var(--ok); }
+.compact { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--line); }
+.compact .grow { flex: 1; min-width: 0; }
+.compact .who { font-weight: 600; }
+.compact .sub { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.waitline { display: flex; align-items: flex-start; gap: 10px 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); padding-top: 16px; border-top: 1px solid var(--line); }
+.waitline details { flex: 1 1 260px; }
+.waitline summary { color: var(--text); }
+.waitline ul { margin: 8px 0 2px; padding-left: 20px; }
+.waitline li { margin: 2px 0; }
+.waitline .status { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 34px; }
+.foot .btn.link { color: var(--muted); }
+#lAll { margin-top: 14px; }
+
+/* templates: fixed text with {{fields}} */
+.tsplit { grid-template-columns: minmax(0, .7fr) minmax(0, 2fr); }
+.tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; margin: 0 6px 6px 0; background: var(--surface-2); color: var(--muted); }
+.tag.var { background: var(--ok-bg); color: var(--ok); } .tag.ai { background: var(--info-bg); color: var(--info); }
+.mark { border-radius: 4px; padding: 0 3px; }
+.mark.var { background: var(--ok-bg); color: var(--ok); } .mark.ai { background: var(--info-bg); color: var(--info); font-style: italic; }
+.fu { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
+.fu .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.fu input[type=number] { width: 72px; }
+.text.preview-full { font-size: 13.5px; line-height: 1.55; }
+@media (max-width: 860px) { .tsplit { grid-template-columns: 1fr; } }
+.search-main { grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(90px, 1fr); }
+@media (max-width: 640px) { .search-main { grid-template-columns: 1fr 1fr; } .search-main .field:first-child { grid-column: 1 / -1; } }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--accent); color: var(--on-accent); max-width: calc(100vw - 32px);
+  padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; text-align: center; }
 .toast.show { opacity: 1; }
-@media (max-width: 640px) { .bar { gap: 14px; padding: 12px 16px; } main { padding: 8px 16px 60px; } .desk { display: none; } }
+@media (max-width: 640px) {
+  .bar { gap: 12px; padding: 12px 16px; } main { padding: 4px 16px 60px; }
+  .compact { flex-wrap: wrap; } .compact .grow { flex-basis: 100%; }
+  .card .head { flex-wrap: wrap; }
+}
 </style>
 </head>
 <body>
 <header>
   <div class="bar">
-    <div class="brand"><i id="dot"></i>Hermes Leads</div>
+    <div class="brand">Hermes Leads</div>
     <nav id="nav">
-      <button data-tab="overview">Übersicht</button>
+      <button data-tab="leads">Heute</button>
       <button data-tab="search">Suche</button>
-      <button data-tab="leads">Leads</button>
-      <button data-tab="outreach">Outreach</button>
-      <button data-tab="campaigns">Kampagnen</button>
-      <button data-tab="registry">Register</button>
+      <button data-tab="templates">Vorlagen</button>
+      <details class="pop" id="navMore"><summary>Mehr</summary>
+        <div class="menu">
+          <button data-tab="outreach">Kontakte<small>Jeder Kontakt mit Verlauf</small></button>
+          <button data-tab="campaigns">Kampagnen<small>Suche und Kontakte in einem Auftrag</small></button>
+          <button data-tab="registry">Register<small>Wer nicht (mehr) kontaktiert wird</small></button>
+          <button data-tab="overview">Übersicht<small>Zahlen und Einrichtung</small></button>
+          <a href="/vnc.html?autoconnect=1&resize=remote" target="_blank" rel="noopener">Desktop ↗<small>Browser des Servers, z. B. für den LinkedIn-Login</small></a>
+        </div>
+      </details>
     </nav>
-    <a class="desk small" href="/vnc.html?autoconnect=1&resize=remote" target="_blank" rel="noopener">Desktop ↗</a>
   </div>
 </header>
 
 <main>
+  <div class="banner" id="banner" hidden></div>
   <section id="overview">
     <h1>Übersicht</h1>
-    <p class="lead-in">Leads finden, prüfen, vernetzen. Versendet wird nichts automatisch.</p>
+    <p class="lead-in">Zahlen, offene Punkte und der Stand der Einrichtung.</p>
     <div class="tiles" id="tiles"></div>
-    <h2>Nächste Schritte</h2>
+    <h2>Offene Punkte</h2>
     <div class="panel" id="actions"></div>
     <h2>Einrichtung</h2>
     <div class="panel"><dl class="kv" id="setup"></dl></div>
@@ -166,54 +247,83 @@ details summary::before { content: '+ '; } details[open] summary::before { conte
 
   <section id="search" hidden>
     <h1>Suche</h1>
-    <p class="lead-in">LinkedIn-Profile über Google finden und auf der Firmen-Website bestätigen.</p>
+    <p class="lead-in">Wen suchst du? Neue Leads erscheinen danach auf „Heute“.</p>
     <form class="panel" id="searchForm" autocomplete="off">
-      <div class="grid">
-        <div class="field"><label for="sKeywords">Branche / Stichwörter</label><input id="sKeywords" type="text" placeholder="z. B. Steuerberater, Softwareentwicklung" required></div>
-        <div class="field"><label for="sTitles">Rollen</label><input id="sTitles" type="text" placeholder="leer = Entscheider (Inhaber, GF, Partner, CEO …)"></div>
-        <div class="field"><label for="sLocations">Orte</label><input id="sLocations" type="text" placeholder="München, Berlin"></div>
-        <div class="field"><label for="sLimit">Anzahl</label><input id="sLimit" type="number" min="1" max="100" value="15"></div>
-        <div class="field"><label for="sCost">Kostendeckel (USD)</label><input id="sCost" type="number" min="0.01" max="10" step="0.05" value="0.5"></div>
-        <div class="field"><label for="sPerCompany">max. pro Firma (leer = unbegrenzt)</label><input id="sPerCompany" type="number" min="1" max="100" value="1"></div>
-        <div class="field"><label for="sMin">Mindeststufe</label><select id="sMin">
-          <option value="verified">verifiziert – Rolle auf der Firmen-Website</option>
-          <option value="plausible" selected>plausibel – auch Ein-Personen-Firmen</option>
-          <option value="linkedin">nur LinkedIn – Website schweigt (z. B. Tech, Konzerne)</option></select></div>
-        <div class="field" style="justify-content:flex-end;gap:8px">
-          <label class="check"><input id="sExpand" type="checkbox" checked> Suchbegriffe erweitern (Synonyme, Rollen-Varianten)</label>
-          <label class="check"><input id="sReview" type="checkbox"> auch Leads unter der Mindeststufe zeigen</label>
-          <label class="check"><input id="sKnownFirms" type="checkbox"> Firmen aus früheren Suchen ausschließen</label></div>
+      <div class="grid search-main">
+        <div class="field"><label for="sKeywords">Was – Branche oder Stichwort</label><input id="sKeywords" type="text" placeholder="z. B. Steuerberater" required></div>
+        <div class="field"><label for="sLocations">Wo</label><input id="sLocations" type="text" placeholder="z. B. München"></div>
+        <div class="field"><label for="sLimit">Wie viele</label><input id="sLimit" type="number" min="1" max="100" value="15"></div>
+        <div class="field wide"><label for="sTemplate">Nachricht für diese Leads</label><select id="sTemplate"></select></div>
       </div>
+      <details style="margin-top:14px"><summary>Erweitert</summary>
+        <div class="grid" style="margin-top:12px">
+          <div class="field"><label for="sTitles">Rollen (leer = Entscheider)</label><input id="sTitles" type="text" placeholder="z. B. Partner, Inhaber"></div>
+          <div class="field"><label for="sMin">Mindestens</label><select id="sMin">
+            <option value="verified">verifiziert (Rolle auf der Website)</option>
+            <option value="plausible" selected>plausibel</option>
+            <option value="linkedin">nur LinkedIn</option></select></div>
+          <div class="field"><label for="sPerCompany">Personen pro Firma</label><input id="sPerCompany" type="number" min="1" max="100" value="1"></div>
+          <div class="field"><label for="sCost">Kostendeckel in USD</label><input id="sCost" type="number" min="0.01" max="10" step="0.05" value="0.5"></div>
+          <div class="field wide" style="gap:8px">
+            <label class="check"><input id="sExpand" type="checkbox" checked> Suchbegriffe erweitern (Synonyme, Rollen-Varianten)</label>
+            <label class="check"><input id="sReview" type="checkbox"> auch unsichere Treffer zeigen</label>
+            <label class="check"><input id="sKnownFirms" type="checkbox"> Firmen aus früheren Suchen auslassen</label></div>
+        </div>
+      </details>
       <div class="actions"><button class="btn primary" type="submit">Suche starten</button><span class="err" id="sErr"></span></div>
     </form>
-    <h2>Suchaufträge</h2>
+    <h2>Bisherige Suchen</h2>
     <div class="scroll"><table>
-      <thead><tr><th>Gestartet</th><th>Kriterien</th><th>Status</th><th class="num">Ergebnis</th><th class="num">Kosten</th></tr></thead>
+      <thead><tr><th>Gestartet</th><th>Suche</th><th>Status</th><th class="num">Treffer</th><th class="num">Kosten</th></tr></thead>
       <tbody id="jobs"></tbody>
     </table></div>
     <div id="jobDetail"></div>
   </section>
 
   <section id="leads" hidden>
-    <h1>Leads</h1>
-    <p class="lead-in">Alle gefundenen Entscheider, ein Eintrag pro Profil. Zeile öffnen für Belege.</p>
-    <div class="toolbar">
-      <input id="lQ" type="search" placeholder="Name, Firma, Rolle …">
-      <div class="seg" id="lTier">
-        <button data-v="" aria-pressed="true">Alle</button><button data-v="verified">verifiziert</button>
-        <button data-v="plausible">plausibel</button><button data-v="linkedin">nur LinkedIn</button><button data-v="review">prüfen</button>
+    <h1>Heute</h1>
+    <p class="lead-in" id="hSub">Einen Moment …</p>
+    <div class="today">
+      <div class="card" id="hSetup" hidden>
+        <div class="head"><div class="who">Lege deine erste Vorlage an</div><span class="meta info">einmalig</span></div>
+        <div class="sub">Dein Nachrichtentext, Wort für Wort – nur die Felder in {{…}} füllt die KI pro Person aus, z. B. ein Eisbrecher mit Bezug zur Firma.</div>
+        <div class="row"><button class="btn primary" type="button" id="hSetupGo">Vorlage anlegen</button></div>
       </div>
-      <span class="muted small num" id="lCount"></span>
+      <div id="hTodo"></div>
+      <div id="hNext"></div>
+      <div id="hWaiting"></div>
     </div>
-    <div class="scroll"><table>
-      <thead><tr><th>Person</th><th>Firma</th><th>Stufe</th><th>Outreach</th></tr></thead>
-      <tbody id="leadRows"></tbody>
-    </table></div>
+    <div class="foot">
+      <button class="btn link" type="button" id="lAllBtn">Alle Leads <span class="num" id="lCount"></span></button>
+      <span id="hTopicLine"></span>
+    </div>
+    <div id="lAll" hidden>
+      <div class="toolbar">
+        <input id="lQ" type="search" placeholder="Name, Firma, Rolle …">
+        <div class="seg" id="lTier">
+          <button data-v="" aria-pressed="true">Alle</button><button data-v="verified">verifiziert</button>
+          <button data-v="plausible">plausibel</button><button data-v="linkedin">nur LinkedIn</button><button data-v="review">prüfen</button>
+        </div>
+      </div>
+      <div class="scroll"><table>
+        <thead><tr><th>Person</th><th>Firma</th><th>Stufe</th><th>Stand</th></tr></thead>
+        <tbody id="leadRows"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="templates" hidden>
+    <h1>Vorlagen</h1>
+    <p class="lead-in">Dein Text bleibt Wort für Wort. Nur was in {{…}} steht, wird pro Person ausgefüllt. Bei jeder Suche wählst du, welche Vorlage ihre Leads bekommen.</p>
+    <div class="split tsplit">
+      <div class="list" id="tList"></div>
+      <div id="tEdit"></div>
+    </div>
   </section>
 
   <section id="outreach" hidden>
-    <h1>Outreach</h1>
-    <p class="lead-in">Erst vernetzen, dann recherchieren und schreiben. Die Einladung sendet der Server automatisch (mit Notiz); die Nachricht nach Annahme sendest du selbst.</p>
+    <h1>Kontakte</h1>
+    <p class="lead-in">Jeder Kontakt mit Verlauf und Entwurf. Für den Alltag reicht „Heute“.</p>
     <details class="panel" id="oNew" style="margin-bottom:20px">
       <summary>Neuer Kontakt</summary>
       <form id="oForm" autocomplete="off" style="margin-top:16px">
@@ -227,7 +337,6 @@ details summary::before { content: '+ '; } details[open] summary::before { conte
           <div class="field"><label for="oNoteMax">Notiz max. Zeichen</label><input id="oNoteMax" type="number" min="50" max="300" value="200"></div>
           <div class="field"><label for="oMsgMax">Nachricht max. Zeichen</label><input id="oMsgMax" type="number" min="200" max="4000" value="1200"></div>
         </div>
-        <label class="check" style="margin-top:12px"><input id="oAutoConnect" type="checkbox" checked> Einladung automatisch senden (mit Notiz)</label>
         <label class="check" style="margin-top:12px"><input id="oSameCompany" type="checkbox"> auch bei gleicher Firma anlegen</label>
         <div class="actions"><button class="btn primary" type="submit" id="oSubmit">Kontakt anlegen</button>
           <span class="muted small">Thema und Vorlagen werden in diesem Browser gemerkt.</span><span class="err" id="oErr"></span></div>
@@ -241,7 +350,7 @@ details summary::before { content: '+ '; } details[open] summary::before { conte
   </section>
   <section id="campaigns" hidden>
     <h1>Kampagnen</h1>
-    <p class="lead-in">Ein Auftrag für die ganze Kette: Suche → Outreach → Vernetzen → Annahme → Recherche → Entwurf. Nachrichten sendest du weiterhin selbst.</p>
+    <p class="lead-in">Ein Auftrag für die Kette: Suche → Kontakte anlegen → (du vernetzt) → Annahme → Recherche → Entwurf. Nachrichten sendest du weiterhin selbst.</p>
     <details class="panel" id="cNew" open>
       <summary>Neue Kampagne</summary>
       <form id="cForm" autocomplete="off" style="margin-top:16px">
@@ -257,7 +366,6 @@ details summary::before { content: '+ '; } details[open] summary::before { conte
           <div class="field wide"><label for="cTemplate">Vorlage für die Nachricht</label><textarea id="cTemplate" placeholder="Ton, Aufbau, Angebot, Frage am Ende …"></textarea></div>
           <div class="field wide"><label for="cNote">Vorlage für die Vernetzungsnotiz (optional)</label><textarea id="cNote" style="min-height:60px"></textarea></div>
         </div>
-        <label class="check" style="margin-top:12px"><input id="cAutoConnect" type="checkbox" checked> Einladung automatisch senden</label>
         <label class="check" style="margin-top:12px"><input id="cSameCompany" type="checkbox"> auch mehrere Personen pro Firma</label>
         <div class="actions"><button class="btn primary" type="submit" id="cSubmit">Kampagne starten</button><span class="err" id="cErr"></span></div>
       </form>
@@ -269,8 +377,7 @@ details summary::before { content: '+ '; } details[open] summary::before { conte
   </section>
   <section id="registry" hidden>
     <h1>Register</h1>
-    <p class="lead-in">Gemeinsame Sperr- und Nachschlageliste für Suche, Outreach und andere Agenten (API: <span class="num">/api/v1/registry</span>).
-      Bekannte Personen werden nie erneut geliefert; Firmen mit aktivem Kontakt, Kunden und Ausschlüsse werden übersprungen.</p>
+    <p class="lead-in">Wer hier steht, wird nicht erneut vorgeschlagen. Firmen mit aktivem Kontakt, Kunden und Ausschlüsse überspringt die Suche.</p>
     <form class="panel" id="rForm" autocomplete="off">
       <div class="grid">
         <div class="field"><label for="rLinkedin">LinkedIn-Profil</label><input id="rLinkedin" type="url" placeholder="https://www.linkedin.com/in/…"></div>
@@ -307,19 +414,19 @@ const list = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
 const safeUrl = (u) => (typeof u === 'string' && /^https:\/\/[^\s]+$/i.test(u) ? u : null);
 const LABEL = {
   verified: 'verifiziert', plausible: 'plausibel', linkedin: 'nur LinkedIn', review: 'prüfen', queued: 'wartet', running: 'läuft', succeeded: 'fertig',
-  partial: 'teilweise', blocked: 'blockiert', failed: 'Fehler', timed_out: 'Zeit abgelaufen', awaiting_connection: 'Vernetzung offen',
-  connected: 'angenommen', researching: 'Recherche', ready: 'bereit', sent: 'gesendet', replied: 'Antwort erhalten', expired: 'abgelaufen',
+  partial: 'teilweise', blocked: 'blockiert', failed: 'Fehler', timed_out: 'Zeit abgelaufen', awaiting_connection: 'eingeladen',
+  connected: 'wird vorbereitet', researching: 'wird vorbereitet', ready: 'Nachricht senden', sent: 'wartet auf Antwort', replied: 'Antwort ✓', expired: 'keine Reaktion',
   pending: 'ausstehend', not_connected: 'nicht vernetzt', unknown: 'unbekannt', login_required: 'Login nötig',
-  delivered: 'geliefert', in_outreach: 'im Outreach', contacted: 'kontaktiert', do_not_contact: 'nicht kontaktieren',
+  delivered: 'geliefert', in_outreach: 'in Kontakt', contacted: 'kontaktiert', do_not_contact: 'nicht kontaktieren',
   customer: 'Kunde', excluded: 'ausgeschlossen',
-  discovering: 'Discovery', outreaching: 'Outreach läuft', awaiting_review: 'Review offen', done: 'fertig',
+  discovering: 'sucht', outreaching: 'Kontakte laufen', awaiting_review: 'Entwürfe prüfen', done: 'fertig',
   paused: 'pausiert', cancelled: 'abgebrochen',
 };
 // What each observed connection state means, shown next to the pill. The workflow status says nothing
-// about whether a request was actually sent – only a check of the profile does.
+// about whether a request was actually sent – only the sent-invitations list (or a profile check) does.
 const CONN_HINT = {
-  unknown: '– noch nicht geprüft oder nicht erkennbar', not_connected: '– keine Anfrage sichtbar',
-  pending: '– Anfrage ausstehend', connected: '– bereits vernetzt', login_required: '– im Browser (noVNC) einloggen',
+  unknown: '– noch nicht unter „Gesendet“ gesehen', not_connected: '– keine Anfrage sichtbar (Profilprüfung)',
+  pending: '– Einladung unter „Gesendet“ gesehen', connected: '– vernetzt', login_required: '– im Browser (noVNC) einloggen',
 };
 
 // DOM builder: text is always set via textContent (web data is untrusted), links only for https URLs.
@@ -336,7 +443,7 @@ function el(tag, props, ...kids) {
   for (const kid of kids.flat()) if (kid != null && kid !== false) n.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
   return n;
 }
-const pill = (v) => el('span', { class: 'pill ' + v, text: LABEL[v] || v });
+const pill = (v, label) => el('span', { class: 'pill ' + v, text: label || LABEL[v] || v });
 const link = (href, text) => (safeUrl(href) ? el('a', { href, target: '_blank', rel: 'noopener noreferrer', text: text || href }) : el('span', { class: 'faint', text: text || '–' }));
 const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 
@@ -351,66 +458,102 @@ async function api(path, opts = {}) {
   }
   return body;
 }
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
-async function copy(text) { try { await navigator.clipboard.writeText(text); toast('Kopiert'); } catch { toast('Kopieren nicht möglich'); } }
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 3500); }
+// Copy synchronously inside the click first: it still works when the next line opens a tab that takes the focus.
+function copyNow(text) {
+  const ta = el('textarea', { readonly: true, style: 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0' });
+  ta.value = text; document.body.append(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch {}
+  ta.remove(); return ok;
+}
+async function copyText(text) { if (copyNow(text)) return true; try { await navigator.clipboard.writeText(text); return true; } catch { return false; } }
+async function copy(text) { toast((await copyText(text)) ? 'Kopiert' : 'Kopieren nicht möglich'); }
+// Message draft to the clipboard, then the profile in a new tab ("Nachricht" there, paste). The first time marks
+// the contact as sent ("wartet auf Antwort"); later clicks only copy and open again.
+async function openAndCopy(r, message, done) {
+  if (!(await copyText(message))) { toast('Kopieren nicht möglich – bitte den Text selbst markieren'); return; }
+  window.open(r.linkedin_url, '_blank', 'noopener');
+  toast('Kopiert – auf LinkedIn „Nachricht“ klicken und einfügen');
+  hintUsed('copy');
+  if (r.status !== 'ready') return;
+  try { await api('/api/v1/outreach/' + encodeURIComponent(r.id) + '/sent', { method: 'POST' }); done(); } catch (e) { toast(e.message); }
+}
 const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+// How-to lines show for the first three uses of an action, then get out of the way.
+const hintSeen = (k) => +store.get('hint.' + k, 0) || 0;
+const hintUsed = (k) => store.set('hint.' + k, String(hintSeen(k) + 1));
+const hint = (k, text) => (hintSeen(k) < 3 ? el('div', { class: 'hint', text }) : null);
 
 /* ------------------------------------------------------------------ navigation */
-const tabs = ['overview', 'search', 'leads', 'outreach', 'campaigns', 'registry'];
+const tabs = ['overview', 'search', 'leads', 'templates', 'outreach', 'campaigns', 'registry'];
+const MORE = ['outreach', 'campaigns', 'registry', 'overview'];  // behind "Mehr": not needed day to day
 function show(tab) {
-  if (!tabs.includes(tab)) tab = 'overview';
+  if (!tabs.includes(tab)) tab = 'leads';
   for (const t of tabs) $(t).hidden = t !== tab;
-  for (const b of $('nav').children) {
-    if (b.dataset.tab === tab) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  for (const b of [...$('nav').querySelectorAll('[data-tab]'), $('navMore').querySelector('summary')]) {
+    const current = b.dataset.tab ? b.dataset.tab === tab : MORE.includes(tab);
+    if (current) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   }
+  $('navMore').open = false;
   store.set('tab', tab);
   if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
-  ({ overview: loadOverview, search: loadJobs, leads: loadLeads, outreach: loadOutreach, campaigns: loadCampaigns, registry: loadRegistry })[tab]();
+  ({ overview: loadOverview, search: loadJobs, leads: () => loadToday(), templates: loadTemplatesPage, outreach: loadOutreach,
+     campaigns: loadCampaigns, registry: loadRegistry })[tab]();
 }
-$('nav').addEventListener('click', (e) => e.target.dataset.tab && show(e.target.dataset.tab));
+$('nav').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) show(b.dataset.tab); });
+document.addEventListener('click', (e) => { for (const d of document.querySelectorAll('details.pop[open]')) if (!d.contains(e.target)) d.open = false; });
 
 /* ------------------------------------------------------------------ overview */
 async function loadOverview() {
   try {
-    const s = await api('/api/v1/status');
-    $('dot').className = s.search.configured ? 'ok' : 'bad';
+    const [s, contacts] = await Promise.all([api('/api/v1/status'), api('/api/v1/outreach').catch(() => [])]);
+    renderBanner(s);
     const oc = s.outreach.counts;
-    $('tiles').replaceChildren(
-      tile(s.leads_total, 'Leads gesamt'), tile(s.jobs_total, 'Suchaufträge'),
-      tile(oc.ready || 0, 'Nachrichten bereit'), tile((oc.awaiting_connection || 0), 'Vernetzung offen'),
-      tile(oc.replied || 0, 'Antworten erhalten'),
-      tile(`${s.outreach.checks_last_24h}/${s.outreach.daily_cap}`, 'Profilprüfungen 24 h'),
-      tile(`${s.outreach.connect_last_24h}/${s.outreach.connect_daily_cap}`, 'Einladungen 24 h'),
-      tile(Object.values(s.registry || {}).reduce((a, b) => a + b, 0), 'Register-Einträge'));
+    $('tiles').replaceChildren(tile(s.leads_total, 'Leads gefunden'), tile(oc.awaiting_connection || 0, 'eingeladen'),
+      tile(oc.ready || 0, 'Nachrichten bereit'), tile(oc.sent || 0, 'warten auf Antwort'), tile(oc.replied || 0, 'Antworten'));
     const yes = (b) => el('span', { class: b ? '' : 'err', text: b ? 'eingerichtet' : 'fehlt' });
     $('setup').replaceChildren(
       el('dt', { text: 'Suche' }), el('dd', {}, yes(s.search.configured)),
       el('dt', { text: 'treg-Token' }), el('dd', {}, yes(s.search.treg)),
       el('dt', { text: 'OpenRouter' }), el('dd', {}, yes(s.search.openrouter)),
       el('dt', { text: 'Modell' }), el('dd', { text: s.search.model }),
-      el('dt', { text: 'Annahme-Prüfung' }), el('dd', { text: s.outreach.background_enabled ? (s.outreach.paused_until ? 'pausiert bis ' + when(s.outreach.paused_until) + ' – bitte im Desktop bei LinkedIn einloggen' : 'aktiv, täglich') : 'aus' }),
+      el('dt', { text: 'Bei LinkedIn nachschauen' }), el('dd', { text: syncText(s.outreach) }),
+      el('dt', { text: 'Vernetzen' }), el('dd', { text: s.outreach.connect_enabled ? 'automatisch durch den Server' : 'von Hand („Heute“ → Vernetzen)' }),
       el('dt', { text: 'Warteschlange' }), el('dd', { class: 'num', text: `${s.queue.running} läuft · ${s.queue.queued} wartet` }));
     const jobs = await api('/api/v1/discoveries?limit=5');
     $('recent').replaceChildren(...(jobs.length ? jobs.map(jobRow) : [el('tr', {}, el('td', { class: 'empty', text: 'Noch keine Suche.' }))]));
-    const acts = await api('/api/v1/actions?limit=8');
-    $('actions').replaceChildren(...(acts.length ? acts.map(actionRow) : [el('p', { class: 'muted small', text: 'Nichts offen.' })]));
+    const acts = await api('/api/v1/actions?limit=8'), names = new Map(contacts.map((c) => [c.id, c.name]));
+    $('actions').replaceChildren(...(acts.length ? acts.map((a) => actionRow(a, names)) : [el('p', { class: 'muted small', style: 'margin:0', text: 'Nichts offen.' })]));
   } catch (e) { $('tiles').replaceChildren(el('p', { class: 'err', text: 'Status nicht ladbar: ' + e.message })); }
 }
-function actionRow(a) {
-  const run = async (path, msg) => { try { await api(path, { method: 'POST' }); toast(msg); loadOverview(); } catch (e) { toast(e.message); } };
-  const paths = { fix_session: '/api/v1/outreach/resume', send_connection: a.suggested_call && a.suggested_call.path,
-    check_acceptance: a.suggested_call && a.suggested_call.path, retry_research: a.suggested_call && a.suggested_call.path };
-  const labels = { fix_session: 'Pause aufheben', send_connection: 'Einladung senden', check_acceptance: 'Jetzt prüfen', retry_research: 'Neu recherchieren' };
-  const titles = { fix_session: 'Sitzung prüfen', send_connection: 'Einladung senden', check_acceptance: 'Annahme prüfen',
-    review_message: 'Nachricht prüfen', retry_research: 'Recherche erneut', handle_reply: 'Antwort bearbeiten',
-    review_expired: 'Abgelaufen prüfen', review_job: 'Suchauftrag prüfen', review_campaign: 'Kampagne prüfen' };
-  return el('div', { class: 'item', style: 'display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)' },
-    el('div', { style: 'flex:1' }, el('div', { text: (titles[a.type] || a.type) + (a.ref_type === 'outreach' ? '' : ' · ' + a.ref_type) }),
-      el('div', { class: 'muted small', text: a.why + (a.actor === 'human' ? ' (menschlich)' : '') })),
-    paths[a.type] ? el('button', { class: 'btn ghost', type: 'button', onclick: () => run(paths[a.type], 'Erledigt'), text: labels[a.type] }) : null,
-    a.ref_type === 'outreach' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => openOutreachTab(a.ref_id), text: 'Öffnen' }) : null);
+// German wording per action type; the API's own `why` is English and meant for agents.
+const ACTION_TEXT = {
+  fix_session: ['LinkedIn braucht einen neuen Login', 'Pause aufheben'], send_connection: ['Einladung konnte nicht gesendet werden', 'Erneut senden'],
+  connect_manually: ['Einladung nicht unter „Gesendet“ gefunden'], check_acceptance: ['Annahme-Prüfung ist fällig', 'Jetzt prüfen'],
+  review_message: ['Nachricht bereit zum Senden'], retry_research: ['Entwurf fehlgeschlagen', 'Neu versuchen'], handle_reply: ['hat geantwortet'],
+  review_expired: ['keine Reaktion nach 30 Tagen'], review_job: ['Suche unvollständig beendet'], review_campaign: ['Kampagne prüfen'],
+  send_followup: ['Follow-up fällig'],
+};
+function actionRow(a, names) {
+  const run = async (path) => { try { await api(path, { method: 'POST' }); toast('Erledigt'); loadOverview(); } catch (e) { toast(e.message); } };
+  const [title, label] = ACTION_TEXT[a.type] || [a.type];
+  const path = a.type === 'fix_session' ? '/api/v1/outreach/resume' : label && a.suggested_call && a.suggested_call.path;
+  const who = a.ref_type === 'outreach' ? names.get(a.ref_id) : null;
+  const open = a.ref_type === 'outreach' && a.ref_id !== 'outreach' ? () => openOutreachTab(a.ref_id)
+    : a.ref_type === 'discovery' ? () => { show('search'); openJob(a.ref_id); } : a.ref_type === 'campaign' ? () => show('campaigns') : null;
+  return el('div', { style: 'display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)' },
+    el('div', { style: 'flex:1', text: who ? who + ' – ' + title : title.charAt(0).toUpperCase() + title.slice(1) }),
+    path ? el('button', { class: 'btn', type: 'button', onclick: () => run(path), text: label }) : null,
+    open ? el('button', { class: 'btn ghost', type: 'button', onclick: open, text: 'Öffnen' }) : null);
 }
 const tile = (v, label) => el('div', { class: 'tile' }, el('b', { class: 'num', text: v }), el('span', { text: label }));
+// One line about the look at sent invitations and newest connections (status.outreach).
+function syncText(o) {
+  if (!o.background_enabled || !o.invite_check_enabled) return 'aus';
+  if (o.paused_until) return 'pausiert bis ' + when(o.paused_until) + ' – bitte im Desktop bei LinkedIn einloggen';
+  const next = o.next_invite_check && o.next_invite_check * 1000 > Date.now() ? ' · nächster ab ' + when(o.next_invite_check) : '';
+  return 'zuletzt ' + (o.last_invite_check ? when(o.last_invite_check) : 'noch nie') + next + ' · heute ' + o.invite_reads_today + '/' + o.invite_daily_cap;
+}
 
 /* ------------------------------------------------------------------ search */
 $('searchForm').addEventListener('submit', async (e) => {
@@ -422,7 +565,8 @@ $('searchForm').addEventListener('submit', async (e) => {
     exclude_previous_companies: $('sKnownFirms').checked,
     budget: { seconds: 1800, max_cost_usd: +$('sCost').value || 0.5 } };
   if (!body.titles.length) delete body.titles;
-  try { const job = await api('/api/v1/discoveries', { method: 'POST', body: JSON.stringify(body) }); toast('Suche gestartet'); await loadJobs(); openJob(job.id); }
+  const tpl = $('sTemplate').value ? '?template_id=' + encodeURIComponent($('sTemplate').value) : '';  // campaign = search + template
+  try { const job = await api('/api/v1/discoveries' + tpl, { method: 'POST', body: JSON.stringify(body) }); toast('Suche gestartet'); await loadJobs(); openJob(job.id); }
   catch (err) { $('sErr').textContent = err.status === 429 ? 'Warteschlange voll.' : err.message; }
 });
 function criteriaText(j) {
@@ -431,7 +575,7 @@ function criteriaText(j) {
 function jobRow(j) {
   return el('tr', { onclick: () => { show('search'); openJob(j.id); } },
     el('td', { class: 'num', text: when(j.created_at) }),
-    el('td', {}, criteriaText(j), el('div', { class: 'sub', text: j.source === 'search' ? 'Suchmaschine' : 'Browser-Agent' })),
+    el('td', {}, criteriaText(j), el('div', { class: 'sub', text: tplName(j.template_id) ? 'Vorlage: ' + tplName(j.template_id) : j.source === 'search' ? 'Suchmaschine' : 'Browser-Agent' })),
     el('td', {}, pill(j.status), j.error ? el('div', { class: 'sub', text: j.error }) : null),
     el('td', { class: 'num', text: `${j.requested_count - j.missing_count}/${j.requested_count}` }),  // qualified / requested
     el('td', { class: 'num', text: money(j.cost_usd) }));
@@ -439,6 +583,11 @@ function jobRow(j) {
 let jobTimer;
 async function loadJobs() {
   try {
+    await loadTemplates();
+    const keep = $('sTemplate').value || (defaultTpl() || {}).id || '';
+    $('sTemplate').replaceChildren(...(templates.length ? templates.map((t) => el('option', { value: t.id, text: t.name + (t.is_default ? ' (Standard)' : '') }))
+      : [el('option', { value: '', text: 'noch keine Vorlage – unter „Vorlagen“ anlegen' })]));
+    $('sTemplate').value = templates.some((t) => t.id === keep) ? keep : (defaultTpl() || {}).id || '';
     const jobs = await api('/api/v1/discoveries?limit=50');
     $('jobs').replaceChildren(...(jobs.length ? jobs.map(jobRow) : [el('tr', {}, el('td', { class: 'empty', colspan: 5, text: 'Noch keine Suche.' }))]));
     clearTimeout(jobTimer);
@@ -461,9 +610,11 @@ async function openJob(id) {
       m.cost_usd != null ? money(m.cost_usd) : null, m.elapsed_seconds ? Math.round(m.elapsed_seconds) + ' s' : null,
       m.stop_reason ? 'Stopp: ' + m.stop_reason : null, j.error ? 'Fehler: ' + j.error : null,
       Object.keys(m.provider_errors || {}).length ? 'Provider-Fehler: ' + Object.entries(m.provider_errors).map(([k, n]) => k + ' ×' + n).join(', ') : null].filter(Boolean).join(' · ') });
-    const rows = (j.result ? j.result.leads : []).map((l) => leadRow({ ...l, outreach_status: null }));
+    // Job results carry no outreach state: take it from the lead list (one row per profile).
+    const known = j.result && j.result.leads.length ? new Map((await api('/api/v1/leads?limit=5000').catch(() => [])).map((r) => [r.linkedin_url, r])) : new Map();
+    const rows = (j.result ? j.result.leads : []).map((l) => leadRow({ ...l, ...outreachOf(known.get(l.linkedin_url)) }, () => openJob(id)));
     box.replaceChildren(head, facts, el('div', { class: 'scroll' }, el('table', {},
-      el('thead', {}, el('tr', {}, el('th', { text: 'Person' }), el('th', { text: 'Firma' }), el('th', { text: 'Stufe' }), el('th', { text: 'Outreach' }))),
+      el('thead', {}, el('tr', {}, el('th', { text: 'Person' }), el('th', { text: 'Firma' }), el('th', { text: 'Stufe' }), el('th', { text: 'Stand' }))),
       el('tbody', {}, rows.length ? rows.flat() : el('tr', {}, el('td', { class: 'empty', colspan: 4, text: j.status === 'running' || j.status === 'queued' ? 'Läuft …' : 'Keine Leads.' }))))));
     if (j.status === 'running' || j.status === 'queued') setTimeout(() => !$('search').hidden && openJob(id), 5000);
   } catch (e) { box.replaceChildren(el('p', { class: 'err', text: e.message })); }
@@ -474,26 +625,92 @@ let tier = '';
 $('lTier').addEventListener('click', (e) => { if (e.target.dataset.v == null) return; tier = e.target.dataset.v;
   for (const b of $('lTier').children) b.setAttribute('aria-pressed', b === e.target); loadLeads(); });
 let qTimer; $('lQ').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(loadLeads, 250); });
+// The full lead table loads only while "Alle Leads" is open; "Heute" works from its own data.
 async function loadLeads() {
+  if ($('lAll').hidden) return;
   const p = new URLSearchParams(); if (tier) p.set('verification', tier); if ($('lQ').value.trim()) p.set('q', $('lQ').value.trim());
   try {
     const rows = await api('/api/v1/leads?' + p);
-    $('lCount').textContent = rows.length + ' Einträge';
-    $('leadRows').replaceChildren(...(rows.length ? rows.map(leadRow).flat() : [el('tr', {}, el('td', { class: 'empty', colspan: 4, text: 'Keine Leads – starte eine Suche.' }))]));
+    $('leadRows').replaceChildren(...(rows.length ? rows.map((l) => leadRow(l)).flat() : [el('tr', {}, el('td', { class: 'empty', colspan: 4, text: 'Keine Leads – starte eine Suche.' }))]));
   } catch (e) { $('leadRows').replaceChildren(el('tr', {}, el('td', { class: 'err', colspan: 4, text: e.message }))); }
+}
+$('lAllBtn').addEventListener('click', () => {
+  $('lAll').hidden = !$('lAll').hidden; $('lAllBtn').setAttribute('aria-expanded', String(!$('lAll').hidden)); loadLeads();
+});
+const SYNC_REASON = { paused: 'Pausiert – erst im Desktop bei LinkedIn einloggen', nothing_waiting: 'Gerade wartet keine Einladung',
+  blocked: 'LinkedIn zeigt eine Sperrseite – Nachschauen pausiert', login_required: 'Nicht eingeloggt – im Desktop bei LinkedIn einloggen',
+  unreadable: 'Seite nicht lesbar – später nochmal' };
+async function syncNow(b) {
+  b.disabled = true; b.textContent = 'Schaut nach …';
+  try {
+    const r = await api('/api/v1/outreach/sync-invitations', { method: 'POST' });
+    toast(!r.checked ? SYNC_REASON[r.reason] || r.reason : r.connected ? `${r.connected} neu vernetzt – der Entwurf kommt gleich` : 'Nachgeschaut – nichts Neues');
+  } catch (e) { toast(e.message); }
+  loadToday();
+}
+const outreachOf = (r) => (r ? { outreach_id: r.outreach_id, outreach_status: r.outreach_status, outreach_connection: r.outreach_connection,
+  outreach_message: r.outreach_message, registry_status: r.registry_status, company_registry: r.company_registry } : {});
+// "Vernetzen": record the contact (no paid lookup, name and role come from the lead), then open the profile.
+// The request itself is sent by hand on LinkedIn; the sent-invitations look confirms it later.
+async function connectLead(l, refresh) {
+  const tpl = tplFor(l);  // the template of the search that found the lead, else the default
+  if (!l.outreach_id && !tpl) { show('templates'); toast('Erst eine Vorlage anlegen'); return; }
+  if (!l.outreach_id && !l.company && !l.company_website) { prefillOutreach(l); return; }  // the form asks for the firm
+  const tab = window.open('', '_blank');  // opened inside the click, so no popup blocker; navigated below
+  if (tab) tab.opener = null;
+  const opened = (id) => api('/api/v1/outreach/' + encodeURIComponent(id) + '/opened', { method: 'POST' });
+  try {
+    if (l.outreach_id) await opened(l.outreach_id);  // a contact an agent or campaign created: it keeps its texts
+    else {
+      const body = { linkedin_url: l.linkedin_url, template_id: tpl.id, name: l.name, opened: true,
+        connection_note: false, auto_connect: false, allow_same_company: true };
+      if (l.current_role) body.headline = l.current_role;
+      if (l.company) body.company_name = l.company;
+      if (l.company_website) body.company_website = l.company_website;
+      await api('/api/v1/outreach', { method: 'POST', body: JSON.stringify(body) });
+    }
+  } catch (e) {
+    if (!(e.status === 409 && e.detail && e.detail.id)) {  // registry says no: nothing to open
+      if (tab) tab.close(); toast(CONFLICT[e.detail && e.detail.error] || e.message); return;
+    }
+    await opened(e.detail.id).catch(() => {});
+  }
+  if (tab) tab.location.href = l.linkedin_url; else window.open(l.linkedin_url, '_blank', 'noopener');
+  hintUsed('connect');
+  refresh();
+}
+const BLOCKING = ['do_not_contact', 'customer', 'excluded'];
+// Four states in the table: Vernetzen ↗ → eingeladen → Öffnen & kopieren → wartet auf Antwort / Antwort ✓.
+function leadAction(l, refresh) {
+  const stop = (fn) => (e) => { e.stopPropagation(); e.preventDefault(); fn(); };
+  const detail = (child) => el('a', { href: '#outreach', onclick: stop(() => openOutreachTab(l.outreach_id)) }, child);
+  const keep = (child) => el('span', { onclick: (e) => e.stopPropagation() }, child);  // a link without toggling the row
+  if (!l.outreach_id) {
+    return BLOCKING.includes(l.registry_status) ? pill(l.registry_status)
+      : el('button', { class: 'btn', type: 'button', onclick: stop(() => connectLead(l, refresh)), text: 'Vernetzen ↗' });
+  }
+  const s = l.outreach_status, c = contactsById.get(l.outreach_id);
+  if (s === 'awaiting_connection' && c && toConnect(c))  // prepared by an agent or campaign: still yours to connect
+    return el('button', { class: 'btn', type: 'button', onclick: stop(() => connectLead(l, refresh)), text: 'Vernetzen ↗' });
+  if (s === 'awaiting_connection') return el('div', {}, detail(pill(s)),
+    el('div', { class: 'sub' }, c && notFound(c) ? 'nicht in „Gesendet“ · ' : '', keep(link(l.linkedin_url, 'Profil ↗'))));
+  if (s === 'ready' && l.outreach_message) return el('button', { class: 'btn', type: 'button', text: 'Öffnen & kopieren',
+    onclick: stop(() => openAndCopy({ id: l.outreach_id, status: s, linkedin_url: l.linkedin_url }, l.outreach_message, refresh)) });
+  if (s === 'sent' && l.outreach_message) return el('div', {}, detail(pill(s)), el('div', { class: 'sub' },
+    el('button', { class: 'btn link', type: 'button', text: 'erneut kopieren ↗',
+      onclick: stop(() => openAndCopy({ id: l.outreach_id, status: s, linkedin_url: l.linkedin_url }, l.outreach_message, refresh)) })));
+  return detail(pill(s));
 }
 function companyNote(statuses) {
   const parts = Object.entries(statuses || {}).filter(([s]) => s !== 'delivered').map(([s, n]) => (LABEL[s] || s) + (n > 1 ? ' ×' + n : ''));
   return parts.length ? el('div', { class: 'note', text: 'Firma im Register: ' + parts.join(', ') }) : null;
 }
-function leadRow(l) {
+function leadRow(l, refresh = () => loadToday()) {
   const ev = el('tr', { hidden: true }, el('td', { colspan: 4 }, el('div', { class: 'evidence' },
     ...(l.evidence || []).map((e) => el('div', { class: 'quote' }, e.quote,
       el('span', { class: 'src' }, (e.source === 'firm_website' ? 'Firmen-Website' : e.source === 'search_snippet' ? 'Google-Treffer' : e.source === 'people_index' ? 'Profil-Index' : 'Quelle') + ' · belegt: ' + e.supports.join(', ') + ' · ', link(e.url, host(e.url))))),
     l.verification_reason ? el('div', { class: 'muted small', text: 'Stufe: ' + l.verification_reason }) : null)));
-  const action = l.outreach_id
-    ? el('a', { href: '#outreach', onclick: (e) => { e.stopPropagation(); e.preventDefault(); openOutreachTab(l.outreach_id); } }, pill(l.outreach_status))
-    : el('button', { class: 'btn ghost', type: 'button', onclick: (e) => { e.stopPropagation(); prefillOutreach(l); }, text: 'Outreach' });
+  const action = leadAction(l, refresh);
   const row = el('tr', { onclick: () => { ev.hidden = !ev.hidden; row.classList.toggle('open', !ev.hidden); } },
     el('td', {}, el('div', {}, link(l.linkedin_url, l.name)), el('div', { class: 'sub', text: l.current_role || '' })),
     el('td', {}, el('div', { text: l.company || '–' }), l.company_website ? el('div', { class: 'sub' }, link(l.company_website, host(l.company_website))) : null,
@@ -503,10 +720,338 @@ function leadRow(l) {
   return [row, ev];
 }
 
+/* ------------------------------------------------------------------ today: what to do next, nothing else */
+const DAILY_HINT = 20;  // invitations per day before a calm "enough for today" note (LinkedIn dislikes bursts)
+const TIER = { verified: 0, plausible: 1, linkedin: 2, review: 3 };
+let contactsById = new Map(), lastStatus = null;
+const skipped = new Set();  // "Später": hidden for this session only
+const ago = (t) => {
+  const s = Date.now() / 1000 - t; if (s < 3600) return 'gerade eben'; if (s < 86400) return 'vor ' + Math.round(s / 3600) + ' Std.';
+  const d = Math.round(s / 86400); return 'vor ' + d + (d === 1 ? ' Tag' : ' Tagen');
+};
+const subOf = (r) => [r.headline, r.company_name || (r.company_website && host(r.company_website))].filter(Boolean).join(' · ');
+// Opened via "Vernetzen", but a look at the sent invitations since then did not list it.
+const notFound = (r) => r.status === 'awaiting_connection' && (r.connect || {}).state === 'manual' && (r.connection || {}).state === 'unknown'
+  && !!r.connect.opened_at && !!lastStatus && (lastStatus.outreach.last_invite_check || 0) > r.connect.opened_at + 20 * 60;
+// Created by an agent or campaign and not opened by you yet: it belongs in the "next lead" queue.
+const toConnect = (r) => r.status === 'awaiting_connection' && (r.connect || {}).state === 'manual' && !(r.connect || {}).opened_at
+  && (r.connection || {}).state === 'unknown';
+const asLead = (r) => ({ name: r.name || host(r.linkedin_url), current_role: r.headline, company: r.company_name || (r.company_website && host(r.company_website)),
+  company_website: r.company_website, linkedin_url: r.linkedin_url, outreach_id: r.id, template_id: r.template_id, verification: null, evidence: [] });
+// Index of the follow-up to send now: the first unsent one whose day has come (no answer yet), else -1.
+function dueFollowup(r) {
+  if (r.status !== 'sent' || !r.sent_at) return -1;
+  const i = (r.followups || []).findIndex((f) => !f.sent_at);
+  return i >= 0 && Date.now() / 1000 >= r.sent_at + r.followups[i].after_days * 86400 ? i : -1;
+}
+const needsYou = (r) => r.status === 'ready' || r.status === 'failed' || notFound(r) || dueFollowup(r) >= 0 || (r.status === 'replied' && !(r.reply || {}).handled_at);
+function setTitle(contacts) { const n = contacts.filter(needsYou).length; document.title = (n ? `(${n}) ` : '') + 'Hermes Leads'; }
+async function post(r, path, msg) {
+  try { await api('/api/v1/outreach/' + encodeURIComponent(r.id) + path, { method: path ? 'POST' : 'DELETE' }); toast(msg); } catch (e) { toast(e.message); }
+  loadToday();
+}
+const button = (text, onclick, cls = 'btn') => el('button', { class: cls, type: 'button', text, onclick });
+const openProfile = (r) => window.open(r.linkedin_url, '_blank', 'noopener');
+// The gist of a draft for a two-line preview: no salutation line, no blank lines.
+function gist(text) {
+  const lines = (text || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  if (lines.length > 1 && lines[0].length <= 40 && /[,!]$/.test(lines[0])) lines.shift();
+  return lines.join(' ');
+}
+// A card: name and a short state on one line, who they are, then content and actions (four levels at most).
+function card({ who, meta, tone = '', sub }, ...rest) {
+  return el('div', { class: 'card' },
+    el('div', { class: 'head' }, el('div', { class: 'who', text: who || 'Kontakt' }), meta ? el('span', { class: 'meta ' + tone, text: meta }) : null),
+    sub ? el('div', { class: 'sub', text: sub }) : null, ...rest);
+}
+const strong = (first) => (first ? 'btn primary' : 'btn');  // only the topmost task gets the strong button
+
+function replyCard(r, first) {
+  return card({ who: r.name, meta: 'hat geantwortet', tone: 'ok', sub: subOf(r) },
+    el('div', { class: 'row' }, button('Auf LinkedIn antworten ↗', () => openProfile(r), strong(first)),
+      button('Erledigt ✓', () => { hintUsed('reply'); post(r, '/reply-handled', 'Erledigt'); }, 'btn ghost'),
+      button('War keine Antwort', () => post(r, '/no-reply', 'Zurückgesetzt'), 'btn ghost')),
+    hint('reply', 'Im Profil auf „Nachricht“ klicken – dort steht die Unterhaltung. Danach „Erledigt“.'));
+}
+function messageCard(r, first) {
+  const c = card({ who: r.name, meta: 'vernetzt ' + ago(r.updated_at), sub: subOf(r) });
+  const preview = el('div', { class: 'preview', text: gist(r.message) });
+  const ta = el('textarea', { hidden: true, 'aria-label': 'Nachricht an ' + (r.name || 'Kontakt') }); ta.value = r.message;
+  ta.addEventListener('change', async () => {
+    try { await api('/api/v1/outreach/' + encodeURIComponent(r.id), { method: 'PATCH', body: JSON.stringify({ message: ta.value }) }); preview.textContent = gist(ta.value); toast('Gespeichert'); }
+    catch (e) { toast(e.message); }
+  });
+  const edit = button('Text ändern', () => {
+    ta.hidden = !ta.hidden; preview.hidden = !ta.hidden; edit.textContent = ta.hidden ? 'Text ändern' : 'Fertig'; if (!ta.hidden) ta.focus();
+  }, 'btn ghost');
+  const done = () => {
+    c.classList.add('done'); setTitle([...contactsById.values()].filter((x) => x.id !== r.id));
+    c.replaceChildren(el('div', { class: 'head' }, el('div', { class: 'who', text: '✓ Kopiert' }), el('span', { class: 'meta', text: r.name || '' })),
+      el('div', { class: 'sub', text: 'Jetzt auf LinkedIn: „Nachricht“ klicken → Strg+V → Senden.' }),
+      el('div', { class: 'row' }, button('Nochmal öffnen & kopieren', () => openAndCopy({ ...r, status: 'sent' }, ta.value, () => {}), 'btn ghost')));
+  };
+  c.append(preview, ta, el('div', { class: 'row' }, button('Öffnen & kopieren', () => openAndCopy(r, ta.value, done), strong(first)), edit),
+    hint('copy', 'Kopiert den Text und öffnet das Profil. Dort: „Nachricht“ → Strg+V → Senden.'));
+  return c;
+}
+function followupCard(r, first) {
+  const i = dueFollowup(r), f = r.followups[i], days = Math.floor((Date.now() / 1000 - r.sent_at) / 86400);
+  const c = card({ who: r.name, meta: `seit ${days} Tagen keine Antwort`, sub: subOf(r) });
+  const preview = el('div', { class: 'preview', text: gist(f.message) });
+  const ta = el('textarea', { hidden: true, 'aria-label': 'Follow-up an ' + (r.name || 'Kontakt') }); ta.value = f.message;
+  ta.addEventListener('change', async () => {
+    try { await api('/api/v1/outreach/' + encodeURIComponent(r.id), { method: 'PATCH', body: JSON.stringify({ followup_index: i, followup_message: ta.value }) });
+      preview.textContent = gist(ta.value); toast('Gespeichert'); }
+    catch (e) { toast(e.message); }
+  });
+  const edit = button('Text ändern', () => {
+    ta.hidden = !ta.hidden; preview.hidden = !ta.hidden; edit.textContent = ta.hidden ? 'Text ändern' : 'Fertig'; if (!ta.hidden) ta.focus();
+  }, 'btn ghost');
+  const send = async () => {
+    if (!(await copyText(ta.value))) { toast('Kopieren nicht möglich – bitte den Text selbst markieren'); return; }
+    window.open(r.linkedin_url, '_blank', 'noopener'); toast('Kopiert – auf LinkedIn „Nachricht“ klicken und einfügen'); hintUsed('copy');
+    try { await api(`/api/v1/outreach/${encodeURIComponent(r.id)}/followups/${i}/sent`, { method: 'POST' }); } catch (e) { toast(e.message); }
+    c.classList.add('done');
+    c.replaceChildren(el('div', { class: 'head' }, el('div', { class: 'who', text: '✓ Kopiert' }), el('span', { class: 'meta', text: r.name || '' })),
+      el('div', { class: 'sub', text: 'Jetzt auf LinkedIn: „Nachricht“ klicken → Strg+V → Senden.' }));
+  };
+  c.append(el('div', { class: 'sub', text: `Follow-up ${i + 1} von ${r.followups.length}` }), preview, ta,
+    el('div', { class: 'row' }, button('Öffnen & kopieren', send, strong(first)), edit,
+      button('Hat geantwortet', () => post(r, '/replied', 'Als beantwortet markiert'), 'btn ghost')));
+  return c;
+}
+function failedCard(r, first) {
+  return card({ who: r.name, meta: 'Entwurf fehlgeschlagen', tone: 'warn', sub: subOf(r) },
+    el('div', { class: 'row' }, button('Neu versuchen', () => post(r, '/accepted', 'Wird neu erstellt'), strong(first)),
+      button('Selbst schreiben ↗', () => { openProfile(r); post(r, '/sent', 'Als gesendet markiert'); }, 'btn ghost')));
+}
+function missingCard(r, first) {
+  return card({ who: r.name, meta: 'Einladung nicht gefunden', tone: 'warn', sub: subOf(r) },
+    el('div', { class: 'preview', text: 'Das Profil wurde geöffnet, aber unter „Gesendet“ steht keine Einladung.' }),
+    el('div', { class: 'row' }, button('Profil nochmal öffnen ↗', () => openProfile(r), strong(first)),
+      button('Schon vernetzt', () => post(r, '/accepted', 'Nachricht wird vorbereitet'), 'btn ghost'),
+      button('Entfernen', () => post(r, '', 'Entfernt'), 'btn ghost')));
+}
+async function notFit(l) {
+  try {
+    if (l.outreach_id) await api('/api/v1/outreach/' + encodeURIComponent(l.outreach_id), { method: 'DELETE' });  // an agent's contact
+    await api('/api/v1/registry', { method: 'POST', body: JSON.stringify({ items: [{ linkedin_url: l.linkedin_url, status: 'excluded', source: 'ui', note: 'passt nicht' }] }) });
+    toast('Ausgeblendet – rückgängig unter Mehr → Register');
+  } catch (e) { toast(e.message); }
+  loadToday();
+}
+// Evidence worth showing: a quote that says more than the name and role already shown.
+const telling = (l) => (l.evidence || []).find((e) => !(e.quote.includes(l.name) && e.quote.length < l.name.length + 60));
+const later = (l) => { skipped.add(l.linkedin_url); loadToday(); };
+// The profile only opens through "Vernetzen ↗": then the contact is always recorded and followed.
+function nextLead(queue, fresh, invitedToday, ready, busy) {
+  if (!fresh) return [];
+  const today = invitedToday >= DAILY_HINT ? `heute ${invitedToday} eingeladen – für heute reicht's` : invitedToday ? `heute ${invitedToday} eingeladen` : '';
+  const label = (text) => el('div', { class: 'label', text: [text, today].filter(Boolean).join(' · ') });
+  if (!queue.length) return [label('Neue Leads'), el('div', { class: 'compact' }, el('div', { class: 'grow sub', text: 'Alle für später zurückgelegt.' }),
+    button('Von vorn', () => { skipped.clear(); loadToday(); }, 'btn ghost'))];
+  const l = queue[0], role = [l.current_role, l.company].filter(Boolean).join(' · ');
+  const tier = l.verification && l.verification !== 'verified' ? pill(l.verification) : null;
+  const connect = (cls) => el('button', { class: cls, type: 'button', disabled: !ready && !l.outreach_id, text: 'Vernetzen ↗', onclick: () => connectLead(l, () => loadToday()) });
+  const via = templates.length > 1 && tplFor(l) ? 'Vorlage: ' + tplFor(l).name : '';  // only worth saying when there is a choice
+  if (busy) return [label(`Danach · ${fresh} ${fresh === 1 ? 'neuer Lead' : 'neue Leads'}`),  // tasks first: the next lead waits quietly
+    el('div', { class: 'compact' }, el('div', { class: 'grow' }, el('div', {}, el('span', { class: 'who', text: l.name }), ' ', tier),
+      el('div', { class: 'sub', text: [role, l.outreach_id && 'vorbereitet', via].filter(Boolean).join(' · ') })), connect('btn'),
+      el('details', { class: 'pop' }, el('summary', { class: 'btn ghost', 'aria-label': 'Weitere Optionen', text: '⋯' }),
+        el('div', { class: 'menu right' }, button('Später', () => later(l), ''), button('Passt nicht – ausblenden', () => notFit(l), ''))))];
+  const ev = telling(l);
+  return [label(`Nächster Lead · ${fresh} neu`), card({ who: l.name, meta: tier ? LABEL[l.verification] : l.outreach_id ? ['vorbereitet', via].filter(Boolean).join(' · ') : via, tone: l.verification === 'review' ? 'warn' : '', sub: role },
+    ev ? el('div', { class: 'preview', text: '„' + ev.quote + '“' }) : null,
+    companyNote(l.company_registry),
+    el('div', { class: 'row' }, connect('btn primary'), button('Später', () => later(l), 'btn ghost'), button('Passt nicht', () => notFit(l), 'btn ghost')),
+    ready || l.outreach_id ? hint('connect', 'Öffnet das Profil – dort auf „Vernetzen“ klicken. Danach kommt hier der nächste.') : el('div', { class: 'hint', text: 'Erst oben eine Vorlage anlegen.' }))];
+}
+// Everything that needs nothing from you, in one quiet line (the names fold out).
+function waiting(groups, o, canSync) {
+  const shown = groups.filter(([, items]) => items.length);
+  if (!shown.length) return [];
+  const state = !o.background_enabled || !o.invite_check_enabled ? 'Automatisches Nachschauen ist aus'
+    : o.paused_until ? 'Nachschauen pausiert' : 'bei LinkedIn geprüft ' + (o.last_invite_check ? ago(o.last_invite_check) : '– noch nie');
+  return [el('div', { class: 'waitline' },
+    el('details', {}, el('summary', { text: 'Läuft von selbst: ' + shown.map(([t, items]) => items.length + ' ' + t).join(' · ') }),
+      el('ul', {}, ...shown.flatMap(([, items, line]) => items.map((r) => el('li', {}, link(r.linkedin_url, r.name || 'Profil'), ' · ' + line(r)))))),
+    el('div', { class: 'status' }, el('span', { text: state }),
+      canSync && !o.paused_until ? el('button', { class: 'chip', type: 'button', text: '↻ Jetzt nachschauen', onclick: (e) => syncNow(e.target) }) : null))];
+}
+const nextFollowupText = (r) => {
+  const f = (r.followups || []).find((x) => !x.sent_at);
+  return f && r.sent_at ? ' · Follow-up ab ' + new Date((r.sent_at + f.after_days * 86400) * 1000).toLocaleDateString('de-DE') : '';
+};
+function summary(tasks, open, anyContacts) {
+  const n = tasks.length, kinds = new Set(tasks.map((t) => t[2]));
+  if (n && kinds.size === 1 && kinds.has('message')) return n === 1 ? '1 Nachricht wartet auf dich.' : `${n} Nachrichten warten auf dich.`;
+  if (n && kinds.size === 1 && kinds.has('followup')) return n === 1 ? '1 Follow-up ist fällig.' : `${n} Follow-ups sind fällig.`;
+  if (n && kinds.size === 1 && kinds.has('reply')) return n === 1 ? 'Jemand hat geantwortet.' : `${n} Antworten sind da.`;
+  if (n) return `${n} Dinge warten auf dich.`;
+  return open ? 'Nichts zu tun. Wenn du magst: neue Leads vernetzen.' : anyContacts ? 'Alles erledigt. Neues erscheint hier von selbst.' : 'Noch keine Leads – starte eine Suche.';
+}
+$('hSetupGo').addEventListener('click', () => { tOpen = 'new'; show('templates'); });
+// Auto refreshes never wipe what you are typing or editing.
+const editing = () => { const a = document.activeElement; return (a && $('leads').contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName)) || !!$('hTodo').querySelector('textarea:not([hidden])'); };
+async function loadToday(auto = false) {
+  try {
+    const [contacts, leads, status] = await Promise.all([api('/api/v1/outreach'), api('/api/v1/leads?limit=5000'), api('/api/v1/status').catch(() => null),
+      loadTemplates()]);
+    lastStatus = status; contactsById = new Map(contacts.map((c) => [c.id, c]));
+    setTitle(contacts); renderBanner(status);
+    if (auto && editing()) return;
+    const ready = templates.length > 0, dayStart = new Date().setHours(0, 0, 0, 0) / 1000;
+    const of = (...st) => contacts.filter((r) => st.includes(r.status));
+    const missing = contacts.filter(notFound);
+    const tasks = [...of('replied').filter((r) => !(r.reply || {}).handled_at).map((r) => [replyCard, r, 'reply']),
+      ...of('ready').map((r) => [messageCard, r, 'message']), ...of('sent').filter((r) => dueFollowup(r) >= 0).map((r) => [followupCard, r, 'followup']),
+      ...of('failed').map((r) => [failedCard, r, 'failed']), ...missing.map((r) => [missingCard, r, 'missing'])];
+    // To connect: contacts an agent or campaign prepared (first), then leads nobody has touched yet (best tier first).
+    const open = [...contacts.filter(toConnect).map(asLead),
+      ...leads.filter((l) => !l.outreach_id && !BLOCKING.includes(l.registry_status)).sort((a, b) => (TIER[a.verification] ?? 4) - (TIER[b.verification] ?? 4))];
+    const queue = open.filter((l) => !skipped.has(l.linkedin_url));
+    const invited = of('awaiting_connection').filter((r) => !notFound(r) && !toConnect(r));
+    $('hSub').textContent = !ready && !tasks.length ? 'Einmal kurz einrichten – dann geht es los.' : summary(tasks, open.length, contacts.length);
+    $('hSetup').hidden = ready;
+    $('hTopicLine').replaceChildren(...(ready ? ['Vorlage: „' + defaultTpl().name + '“' + (templates.length > 1 ? ` (+${templates.length - 1})` : '') + ' · ',
+      el('button', { class: 'btn link', type: 'button', text: 'Vorlagen', onclick: () => show('templates') })] : []));
+    $('hTodo').replaceChildren(...(tasks.length ? [el('div', { class: 'cards' }, ...tasks.map(([fn, r], i) => fn(r, i === 0)))] : []));
+    $('hNext').replaceChildren(...(leads.length || open.length ? nextLead(queue, open.length, contacts.filter((r) => ((r.connect || {}).opened_at || 0) >= dayStart).length, ready, tasks.length > 0)
+      : [el('div', { class: 'compact' }, el('div', { class: 'grow sub', text: 'Hier erscheinen Leads aus deinen Suchen.' }), button('Zur Suche', () => show('search'), 'btn primary'))]));
+    $('hWaiting').replaceChildren(...waiting([
+      ['in Vorbereitung', of('connected', 'researching'), () => 'Nachricht wird vorbereitet'],
+      ['eingeladen', invited, (r) => 'eingeladen ' + ago(r.created_at)],
+      ['warten auf Antwort', of('sent').filter((r) => dueFollowup(r) < 0), (r) => 'Nachricht gesendet ' + ago(r.sent_at || r.updated_at) + nextFollowupText(r)],
+      ['ohne Reaktion', of('expired'), (r) => 'eingeladen ' + ago(r.created_at) + ', keine Reaktion']], status ? status.outreach : {}, invited.length + missing.length > 0));
+    $('lCount').textContent = '(' + leads.length + ')';
+    loadLeads();
+  } catch (e) { $('hSub').textContent = 'Nicht ladbar: ' + e.message; }
+}
+// Only when something actually needs fixing: a paused LinkedIn session or a search that is not set up.
+function renderBanner(s) {
+  if (!s) return;
+  const parts = [];
+  if (s.outreach.paused_until) parts.push(
+    el('p', {}, el('b', { text: 'LinkedIn braucht dich. ' }), 'Der Server hat eine Login- oder Sicherheitsseite gesehen und pausiert bis ' + when(s.outreach.paused_until) + '.'),
+    el('div', { class: 'row' }, el('a', { class: 'btn primary', href: '/vnc.html?autoconnect=1&resize=remote', target: '_blank', rel: 'noopener', text: 'Desktop öffnen ↗' }),
+      button('Ich habe mich eingeloggt', async () => { try { await api('/api/v1/outreach/resume', { method: 'POST' }); toast('Weiter geht’s'); } catch (e) { toast(e.message); } refreshBanner(); })));
+  if (!s.search.configured) parts.push(
+    el('p', {}, el('b', { text: 'Die Suche ist noch nicht eingerichtet. ' }), 'Es fehlt der treg-Token oder der OpenRouter-Schlüssel.'),
+    el('div', { class: 'row' }, button('Details', () => show('overview'))));
+  $('banner').hidden = !parts.length;
+  $('banner').replaceChildren(...parts);
+}
+async function refreshBanner() { try { renderBanner(await api('/api/v1/status')); } catch {} }
+// Keeps the tab title counter current and brings "Heute" up to date when you come back from LinkedIn.
+setInterval(async () => {
+  if (!$('leads').hidden && !document.hidden) return loadToday(true);
+  try { setTitle(await api('/api/v1/outreach')); } catch {}
+  refreshBanner();
+}, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('leads').hidden) loadToday(true); });
+
+/* ------------------------------------------------------------------ templates: fixed text with {{fields}} */
+let templates = [], tOpen = null;
+const VARS = { name: 'Name', vorname: 'Vorname', nachname: 'Nachname', firma: 'Firma', rolle: 'Rolle', website: 'Website' };
+const SAMPLE = { name: 'Erika Musterfrau', vorname: 'Erika', nachname: 'Musterfrau', firma: 'Musterfrau Steuerberatung', rolle: 'Steuerberaterin', website: 'musterfrau-steuer.de' };
+const FIELD_RE = /\{\{\s*([\s\S]+?)\s*\}\}/g;
+const EXAMPLE = 'Hallo {{name}},\n\n{{Eisbrecher mit Bezug zur Firma, 1–2 Sätze, gern mit Augenzwinkern}}\n\n…dein Text, Wort für Wort…\n\nViele Grüße\nDein Name';
+async function loadTemplates() { try { templates = await api('/api/v1/templates'); } catch {} return templates; }
+const defaultTpl = () => templates.find((t) => t.is_default) || templates[0] || null;
+const tplFor = (l) => templates.find((t) => t.id === l.template_id) || defaultTpl();
+const tplName = (id) => (templates.find((t) => t.id === id) || {}).name || '';
+// The text with its fields marked: green = filled from the profile (shown with a sample person), blue = written by the AI.
+function marked(text) {
+  const out = []; let last = 0;
+  for (const m of text.matchAll(FIELD_RE)) {
+    const key = m[1].trim().toLowerCase();
+    out.push(text.slice(last, m.index), VARS[key] ? el('span', { class: 'mark var', text: SAMPLE[key] }) : el('span', { class: 'mark ai', text: '‹KI: ' + m[1] + '›' }));
+    last = m.index + m[0].length;
+  }
+  out.push(text.slice(last));
+  return out;
+}
+function legend(texts) {
+  const seen = new Set(), tags = [];
+  for (const t of texts) for (const m of t.matchAll(FIELD_RE)) {
+    const key = m[1].trim().toLowerCase();
+    if (seen.has(key)) continue; seen.add(key);
+    tags.push(VARS[key] ? el('span', { class: 'tag var', text: VARS[key] + ' aus dem Profil' }) : el('span', { class: 'tag ai', text: 'KI schreibt: ' + m[1] }));
+  }
+  return tags.length ? tags : [el('span', { class: 'hint', text: 'Noch keine Felder – z. B. {{name}} oder {{Eisbrecher mit Bezug zur Firma}}.' })];
+}
+async function loadTemplatesPage() {
+  await loadTemplates();
+  if (tOpen !== 'new' && !templates.some((t) => t.id === tOpen)) tOpen = templates.length ? defaultTpl().id : 'new';
+  $('tList').replaceChildren(
+    ...templates.map((t) => el('div', { class: 'item' + (t.id === tOpen ? ' open' : ''), onclick: () => { tOpen = t.id; loadTemplatesPage(); } },
+      el('div', {}, el('div', { text: t.name }),
+        el('div', { class: 'sub', text: t.followups.length ? t.followups.length + (t.followups.length > 1 ? ' Follow-ups' : ' Follow-up') : 'ohne Follow-up' })),
+      el('div', {}, t.is_default ? pill('standard', 'Standard') : null))),
+    el('div', { style: 'padding:8px 0' }, button('+ Neue Vorlage', () => { tOpen = 'new'; loadTemplatesPage(); }, tOpen === 'new' ? 'btn primary' : 'btn')));
+  $('tEdit').replaceChildren(templateEditor(templates.find((t) => t.id === tOpen) || null));
+}
+function templateEditor(t) {
+  const name = el('input', { type: 'text', id: 'tName', placeholder: 'z. B. Steuerberater – KI-Potenzialanalyse' }); name.value = t ? t.name : '';
+  const topic = el('input', { type: 'text', id: 'tTopic', placeholder: 'z. B. KI-Automatisierung für Kanzleien' }); topic.value = (t && t.topic) || '';
+  const msg = el('textarea', { id: 'tMsg', style: 'min-height:300px', placeholder: EXAMPLE }); msg.value = t ? t.message : '';
+  const isDefault = el('input', { type: 'checkbox' }); isDefault.checked = t ? t.is_default : !templates.length;
+  const fus = el('div'), tags = el('div', { style: 'margin-top:4px' }), preview = el('div', { class: 'text preview-full', style: 'margin-top:8px' });
+  const texts = () => [msg.value, ...[...fus.querySelectorAll('textarea')].map((x) => x.value)];
+  const refresh = () => { tags.replaceChildren(...legend(texts())); preview.replaceChildren(...marked(msg.value || EXAMPLE)); };
+  const lastDays = () => Math.max(0, ...[...fus.querySelectorAll('input[type=number]')].map((x) => +x.value || 0));
+  const addFollowup = (f) => {
+    const days = el('input', { type: 'number', min: '1', max: '120', 'aria-label': 'Tage ohne Antwort' }); days.value = f ? f.after_days : lastDays() + 10;
+    const text = el('textarea', { style: 'min-height:110px', placeholder: 'Hallo {{name}}, …', 'aria-label': 'Text des Follow-ups' }); text.value = f ? f.message : '';
+    const row = el('div', { class: 'fu' }, el('div', { class: 'row' }, 'Wenn nach', days, 'Tagen keine Antwort kam:',
+      button('Entfernen', () => { row.remove(); refresh(); }, 'btn ghost')), text);
+    text.addEventListener('input', refresh); fus.append(row);
+  };
+  (t ? t.followups : []).forEach(addFollowup);
+  msg.addEventListener('input', refresh); refresh();
+  const save = async () => {
+    const body = { name: name.value.trim(), message: msg.value.trim(), is_default: isDefault.checked,
+      followups: [...fus.querySelectorAll('.fu')].map((r) => ({ after_days: +r.querySelector('input').value || 10, message: r.querySelector('textarea').value.trim() }))
+        .filter((f) => f.message) };
+    if (topic.value.trim()) body.topic = topic.value.trim();
+    if (!body.name || !body.message) { toast('Bitte Name und Nachricht ausfüllen'); return; }
+    try {
+      const rec = await api('/api/v1/templates' + (t ? '/' + encodeURIComponent(t.id) : ''), { method: t ? 'PUT' : 'POST', body: JSON.stringify(body) });
+      tOpen = rec.id; toast('Gespeichert'); loadTemplatesPage();
+    } catch (e) { toast(e.message === 'Eingabe ungültig' ? 'Bitte prüfen: Name, Nachricht (max. 4000 Zeichen), Follow-up nach 1–120 Tagen' : e.message); }
+  };
+  const remove = t ? button('Löschen', async () => {
+    if (!confirm('Vorlage löschen? Bestehende Kontakte behalten ihren Text.')) return;
+    try { await api('/api/v1/templates/' + encodeURIComponent(t.id), { method: 'DELETE' }); tOpen = null; toast('Gelöscht'); loadTemplatesPage(); } catch (e) { toast(e.message); }
+  }, 'btn danger') : null;
+  return el('div', { class: 'panel' },
+    el('div', { class: 'grid' }, el('div', { class: 'field' }, el('label', { for: 'tName', text: 'Name' }), name),
+      el('div', { class: 'field' }, el('label', { for: 'tTopic', text: 'Worum geht es? (für die KI, optional)' }), topic)),
+    el('div', { class: 'field', style: 'margin-top:14px' }, el('label', { for: 'tMsg', text: 'Nachricht' }), msg, tags),
+    el('div', { class: 'hint small', style: 'margin-top:6px', text: '{{name}}, {{vorname}}, {{nachname}}, {{firma}}, {{rolle}} kommen aus dem Profil. '
+      + 'Alles andere in {{…}} ist eine Anweisung an die KI: Sie schreibt nur diese Stelle, mit Bezug zur Firmen-Website. Der Rest bleibt Wort für Wort.' }),
+    el('h2', { text: 'Follow-ups – nur, solange keine Antwort kommt' }), fus,
+    button('+ Follow-up', () => { addFollowup(null); refresh(); }, 'btn ghost'),
+    el('details', { style: 'margin-top:16px' }, el('summary', { text: 'Vorschau mit Beispielperson' }), preview),
+    el('label', { class: 'check', style: 'margin-top:16px' }, isDefault, 'Standard für Leads ohne eigene Vorlage'),
+    el('div', { class: 'actions' }, button('Speichern', save, 'btn primary'), remove));
+}
+
 /* ------------------------------------------------------------------ outreach */
-const O_FILTERS = [['', 'Alle'], ['awaiting_connection', 'Vernetzung offen'], ['researching', 'Recherche'], ['ready', 'Bereit'], ['sent', 'Gesendet'], ['replied', 'Antwort'], ['expired', 'Abgelaufen'], ['do_not_contact', 'Gesperrt'], ['failed', 'Fehler']];
+const O_FILTERS = [['', 'Alle'], ['awaiting_connection', 'Eingeladen'], ['researching', 'Wird vorbereitet'], ['ready', 'Nachricht senden'], ['sent', 'Wartet auf Antwort'], ['replied', 'Antwort'], ['expired', 'Keine Reaktion'], ['do_not_contact', 'Gesperrt'], ['failed', 'Fehler']];
 let oFilter = '', oOpen = null, oTimer;
-for (const k of ['oTopic', 'oTemplate', 'oNoteTemplate']) { $(k).value = store.get('outreach.' + k, ''); $(k).addEventListener('change', () => store.set('outreach.' + k, $(k).value)); }
+// Topic and templates are shared by the Leads panel and the Outreach form and remembered in this browser.
+for (const [key, ids] of [['outreach.oTopic', ['oTopic']], ['outreach.oTemplate', ['oTemplate']], ['outreach.oNoteTemplate', ['oNoteTemplate']]]) {
+  for (const id of ids) {
+    $(id).value = store.get(key, '');
+    $(id).addEventListener('change', () => { store.set(key, $(id).value); for (const other of ids) $(other).value = $(id).value; });
+  }
+}
+const CONFLICT = { company_in_outreach: 'Bei dieser Firma läuft schon ein Kontakt. Trotzdem? Dann „auch bei gleicher Firma“ anhaken.',
+  company_blocked: 'Die Firma ist im Register gesperrt (Kunde/ausgeschlossen/nicht kontaktieren).',
+  person_in_registry: 'Diese Person wird bereits von einem anderen Agenten kontaktiert.',
+  person_do_not_contact: 'Diese Person möchte nicht kontaktiert werden.', person_customer: 'Diese Person ist als Kunde eingetragen.',
+  person_excluded: 'Diese Person ist ausgeschlossen.' };
 function prefillOutreach(l) {
   $('oLinkedin').value = l.linkedin_url || ''; $('oWebsite').value = l.company_website || ''; $('oCompany').value = l.company || '';
   $('oNew').open = true; show('outreach'); $('oTopic').focus();
@@ -521,17 +1066,11 @@ $('oForm').addEventListener('submit', async (e) => {
   if ($('oTemplate').value.trim()) body.template = $('oTemplate').value.trim();
   if ($('oNoteTemplate').value.trim()) body.note_template = $('oNoteTemplate').value.trim();
   if ($('oSameCompany').checked) body.allow_same_company = true;
-  body.auto_connect = $('oAutoConnect').checked;
   try {
     const rec = await api('/api/v1/outreach', { method: 'POST', body: JSON.stringify(body) });
     toast('Kontakt angelegt'); $('oLinkedin').value = $('oWebsite').value = $('oCompany').value = ''; $('oNew').open = false;
     oOpen = rec.id; await loadOutreach();
   } catch (err) {
-    const CONFLICT = { company_in_outreach: 'Bei dieser Firma läuft schon ein Kontakt. Trotzdem? Dann „auch bei gleicher Firma“ anhaken.',
-      company_blocked: 'Die Firma ist im Register gesperrt (Kunde/ausgeschlossen/nicht kontaktieren).',
-      person_in_registry: 'Diese Person wird bereits von einem anderen Agenten kontaktiert.',
-      person_do_not_contact: 'Diese Person möchte nicht kontaktiert werden.', person_customer: 'Diese Person ist als Kunde eingetragen.',
-      person_excluded: 'Diese Person ist ausgeschlossen.' };
     if (err.status === 409 && err.detail && err.detail.id) { oOpen = err.detail.id; toast('Kontakt existiert bereits'); loadOutreach(); }
     else if (err.status === 409 && err.detail && CONFLICT[err.detail.error]) $('oErr').textContent = CONFLICT[err.detail.error];
     else $('oErr').textContent = err.message === 'Eingabe ungültig' ? 'Bitte LinkedIn-Profil, Thema und Website oder Firmenname prüfen.' : err.message;
@@ -540,66 +1079,78 @@ $('oForm').addEventListener('submit', async (e) => {
 $('oFilter').addEventListener('click', (e) => { if (e.target.dataset.v == null) return; oFilter = e.target.dataset.v; loadOutreach(); });
 async function loadOutreach() {
   try {
-    const all = await api('/api/v1/outreach');
+    const [all] = await Promise.all([api('/api/v1/outreach'), loadTemplates()]);
     const counts = {}; for (const r of all) counts[r.status] = (counts[r.status] || 0) + 1;
-    $('oFilter').replaceChildren(...O_FILTERS.map(([v, label]) => el('button', { 'data-v': v, 'aria-pressed': String(oFilter === v), type: 'button' },
-      label + ' ', el('span', { class: 'faint num', text: v ? (v === 'researching' ? (counts.researching || 0) + (counts.connected || 0) : counts[v] || 0) : all.length }))));
+    const count = (v) => (v ? (v === 'researching' ? (counts.researching || 0) + (counts.connected || 0) : counts[v] || 0) : all.length);
+    $('oFilter').replaceChildren(...O_FILTERS.filter(([v]) => !v || v === oFilter || count(v)).map(([v, label]) =>  // no empty filters
+      el('button', { 'data-v': v, 'aria-pressed': String(oFilter === v), type: 'button' }, label + ' ', el('span', { class: 'faint num', text: count(v) }))));
     const rows = all.filter((r) => !oFilter || r.status === oFilter || (oFilter === 'researching' && r.status === 'connected'));
     if (!rows.some((r) => r.id === oOpen) && rows.length) oOpen = rows[0].id;  // always show a detail when possible
     $('oList').replaceChildren(...(rows.length ? rows.map((r) => el('div', { class: 'item' + (r.id === oOpen ? ' open' : ''), onclick: () => { oOpen = r.id; loadOutreach(); } },
       el('div', {}, el('div', { text: r.name || host(r.linkedin_url) + ' (Profil)' }), el('div', { class: 'sub', text: (r.company_name || (r.company_website ? host(r.company_website) : '')) + ' · ' + r.topic })),
       el('div', { style: 'text-align:right' }, pill(r.status), el('div', { class: 'sub num', text: when(r.updated_at) })))) :
-      [el('p', { class: 'empty', text: all.length ? 'Keine Kontakte in diesem Status.' : 'Noch keine Kontakte. Oben „Neuer Kontakt“ öffnen – oder in „Leads“ bei einer Person auf „Outreach“ klicken.' })]));
+      [el('p', { class: 'empty', text: all.length ? 'Keine Kontakte in diesem Status.' : 'Noch keine Kontakte. Sie entstehen auf „Heute“ mit „Vernetzen ↗“.' })]));
     const open = all.find((r) => r.id === oOpen);
     $('oDetail').replaceChildren(open ? outreachDetail(open) : all.length ? el('p', { class: 'muted', text: 'Kontakt auswählen.' }) : '');
     clearTimeout(oTimer); oTimer = setTimeout(() => !$('outreach').hidden && document.activeElement?.tagName !== 'TEXTAREA' && loadOutreach(), 20000);
   } catch (e) { $('oList').replaceChildren(el('p', { class: 'err', text: e.message })); }
 }
+const ERROR_TEXT = { research_thin: 'Wenig auf der Website gefunden – Entwurf bitte genauer prüfen.', message_failed: 'Der Entwurf konnte nicht erstellt werden.',
+  field_missing: 'Ein KI-Feld blieb leer – Text bitte prüfen.' };
+// One contact: who, what happened when, the draft, and quiet secondary actions. Connection internals only while it matters.
 function outreachDetail(r) {
   const act = async (path, msg) => { try { await api('/api/v1/outreach/' + encodeURIComponent(r.id) + path, { method: path ? 'POST' : 'DELETE' }); toast(msg); if (!path) oOpen = null; loadOutreach(); } catch (e) { toast(e.message); } };
   const c = r.connection || {}, cn = r.connect || { state: 'manual' };
+  const waitingForAccept = ['awaiting_connection', 'expired'].includes(r.status);
+  const step = (label, t, extra) => (t ? [el('dt', { text: label }), el('dd', { class: 'num', text: when(t) + (extra || '') })] : null);
   const blocks = [
-    el('div', { class: 'block' }, el('div', { style: 'display:flex;gap:10px;align-items:center;font-size:17px;font-weight:600;letter-spacing:-.01em' }, r.name || 'Unbekannter Name', pill(r.status)),
-      el('div', { class: 'muted small', text: r.headline || '' }),
-      el('div', { class: 'small', style: 'margin-top:8px' }, link(r.linkedin_url, 'LinkedIn-Profil ↗'), r.company_website ? ' · ' : '', r.company_website ? link(r.company_website, host(r.company_website)) : '')),
     el('div', { class: 'block' },
-      el('h3', {}, el('span', { text: 'Verbindung' }),
-        ['awaiting_connection', 'connected', 'expired', 'failed'].includes(r.status) && cn.state !== 'sent'
-          ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/connect', 'Einladung wird gesendet'), text: cn.state === 'failed' ? 'Einladung erneut senden' : 'Einladung jetzt senden' }) : null,
-        ['awaiting_connection', 'connected', 'expired', 'failed'].includes(r.status)
-          ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/check-connection', 'Profilstatus geprüft'), text: 'Profilstatus prüfen' }) : null),
-      el('dl', { class: 'kv' },
-        el('dt', { text: 'Einladung' }), el('dd', {}, pill(cn.state || 'not_sent'), cn.error ? el('span', { class: 'faint small', text: ' ' + cn.error }) : (cn.state === 'not_sent' ? el('span', { class: 'faint small', text: ' wartet auf Versand' }) : null)),
-        el('dt', { text: 'Versuche' }), el('dd', { class: 'num', text: String(cn.attempts || 0) }),
-        el('dt', { text: 'Einladung gesendet' }), el('dd', { class: 'num', text: cn.sent_at ? when(cn.sent_at) : 'noch nicht' }),
-        el('dt', { text: 'Stand' }), el('dd', {}, pill(c.state || 'unknown'), el('span', { class: 'faint small', text: ' ' + CONN_HINT[c.state || 'unknown'] })),
-        el('dt', { text: 'Prüfungen' }), el('dd', { class: 'num', text: String(c.checks || 0) }),
-        el('dt', { text: 'Zuletzt geprüft' }), el('dd', { class: 'num', text: c.last_checked_at ? when(c.last_checked_at) : 'noch nie' }),
-        el('dt', { text: 'Nächste (automatisch)' }), el('dd', { class: 'num', text: when(c.next_check_at) })),
-      el('div', { class: 'faint small', style: 'margin-top:6px', text: 'Die Einladung sendet der Server im Hintergrund-Tab; Profilprüfungen lesen nur. Bei jeder Sperre/CAPTCHA stoppt alles.' })),
+      el('div', { style: 'display:flex;gap:10px;align-items:center;justify-content:space-between' },
+        el('div', { style: 'font-size:17px;font-weight:600;letter-spacing:-.01em', text: r.name || 'Unbekannter Name' }), pill(r.status)),
+      el('div', { class: 'muted small', text: [subOf(r), tplName(r.template_id) && 'Vorlage: ' + tplName(r.template_id)].filter(Boolean).join(' · ') }),
+      el('div', { class: 'small', style: 'margin-top:8px' }, link(r.linkedin_url, 'LinkedIn-Profil ↗'), r.company_website ? ' · ' : '', r.company_website ? link(r.company_website, host(r.company_website)) : '')),
+    el('div', { class: 'block' }, el('h3', { text: 'Verlauf' }), el('dl', { class: 'kv' },
+      step('Angelegt', r.created_at), step('Einladung gesehen', cn.sent_at), step('Nachricht kopiert', r.sent_at),
+      ...(r.followups || []).map((f, i) => step(`Follow-up ${i + 1} kopiert`, f.sent_at)),
+      r.reply ? step('Antwort', r.reply.detected_at, r.reply.handled_at ? ' · erledigt' : '') : null)),
   ];
+  if (waitingForAccept) blocks.push(el('div', { class: 'block' },
+    el('h3', {}, el('span', { text: 'Einladung' }), el('span', {},
+      ['not_sent', 'failed'].includes(cn.state) ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/connect', 'Einladung wird gesendet'), text: 'Jetzt senden' }) : null,
+      el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/check-connection', 'Profil geprüft'), text: 'Profil prüfen' }))),
+    el('div', { class: 'small' }, pill(c.state || 'unknown'), el('span', { class: 'muted', text: ' ' + CONN_HINT[c.state || 'unknown'] }))));
   if (r.connection_note) blocks.push(el('div', { class: 'block' },
     el('h3', {}, el('span', { text: 'Vernetzungsnotiz' }), el('button', { class: 'btn ghost', type: 'button', onclick: () => copy(r.connection_note), text: 'Kopieren' })),
-    el('div', { class: 'text', text: r.connection_note }), el('div', { class: 'faint small num', style: 'margin-top:4px', text: r.connection_note.length + ' Zeichen' })));
+    el('div', { class: 'text', text: r.connection_note })));
   if (r.findings && r.findings.length) blocks.push(el('div', { class: 'block' }, el('h3', { text: 'Ansatzpunkte zu „' + r.topic + '“' }),
     el('div', { class: 'evidence' }, ...r.findings.map((f) => el('div', {}, el('div', { text: f.need }), el('div', { class: 'muted small', text: 'Wo: ' + f.where }),
       el('div', { class: 'quote small', style: 'margin-top:6px' }, f.quote, el('span', { class: 'src' }, link(f.url, host(f.url)))))))));
   if (r.message) {
-    const ta = el('textarea', { style: 'min-height:180px' }); ta.value = r.message;
+    const ta = el('textarea', { style: 'min-height:200px', 'aria-label': 'Nachricht' }); ta.value = r.message;
+    ta.addEventListener('change', async () => {  // edits are kept, so "Öffnen & kopieren" on "Heute" copies them too
+      try { await api('/api/v1/outreach/' + encodeURIComponent(r.id), { method: 'PATCH', body: JSON.stringify({ message: ta.value }) }); toast('Gespeichert'); }
+      catch (e) { toast(e.message); }
+    });
     blocks.push(el('div', { class: 'block' },
-      el('h3', {}, el('span', { text: 'Nachricht (Entwurf)' }), el('button', { class: 'btn ghost', type: 'button', onclick: () => copy(ta.value), text: 'Kopieren' })), ta,
-      el('div', { class: 'faint small', style: 'margin-top:4px', text: 'Änderungen hier bleiben nur im Browser – vor dem Senden selbst prüfen.' })));
-  }
-  if (r.reply) blocks.push(el('p', { class: 'small', text: 'Antwort ' + (r.reply.source === 'inbox' ? 'im Postfach erkannt' : 'von Hand markiert') + ' am ' + when(r.reply.detected_at) + (r.sent_at ? ' · gesendet am ' + when(r.sent_at) : '') }));
-  if (r.error) blocks.push(el('p', { class: 'muted small', text: 'Hinweis: ' + r.error }));
-  blocks.push(el('div', { class: 'actions' },
-    ['awaiting_connection', 'expired', 'failed'].includes(r.status) ? el('button', { class: 'btn', type: 'button', onclick: () => act('/accepted', 'Recherche gestartet'), text: 'Angenommen – recherchieren' }) : null,
-    r.status === 'ready' ? el('button', { class: 'btn primary', type: 'button', onclick: () => act('/sent', 'Als gesendet markiert'), text: 'Als gesendet markieren' }) : null,
-    !['replied', 'do_not_contact'].includes(r.status) ? el('button', { class: 'btn', type: 'button', onclick: () => act('/replied', 'Als beantwortet markiert'), text: 'Antwort erhalten' }) : null,
-    r.status === 'replied' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/no-reply', 'Zurückgesetzt'), text: 'Doch keine Antwort' }) : null,
-    r.status !== 'do_not_contact' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => confirm('Diese Person dauerhaft für alle Agenten sperren?') && act('/do-not-contact', 'Gesperrt'), text: 'Nicht kontaktieren' }) : null,
-    el('button', { class: 'btn danger', type: 'button', onclick: () => confirm('Kontakt löschen?') && act('', 'Gelöscht'), text: 'Löschen' }),
-    el('span', { class: 'faint small num', style: 'margin-left:auto', text: money(r.cost_usd) })));
+      el('h3', {}, el('span', { text: 'Nachricht' }), el('span', {},
+        el('button', { class: 'btn ghost', type: 'button', onclick: () => copy(ta.value), text: 'Nur kopieren' }),
+        ['ready', 'sent'].includes(r.status) ? el('button', { class: r.status === 'ready' ? 'btn primary' : 'btn', type: 'button',
+          onclick: () => openAndCopy(r, ta.value, loadOutreach), text: 'Öffnen & kopieren' }) : null)), ta,
+      r.error ? el('div', { class: 'note', style: 'margin-top:6px', text: ERROR_TEXT[r.error] || 'Hinweis: ' + r.error }) : null));
+  } else if (r.error) blocks.push(el('p', { class: 'note', text: ERROR_TEXT[r.error] || 'Hinweis: ' + r.error }));
+  if ((r.followups || []).length) blocks.push(el('div', { class: 'block' }, el('h3', { text: 'Follow-ups – nur ohne Antwort' }),
+    ...r.followups.map((f, i) => el('div', { class: 'fu' },
+      el('div', { class: 'row' }, `${i + 1}. nach ${f.after_days} Tagen · ` + (f.sent_at ? 'kopiert ' + when(f.sent_at)
+        : r.sent_at ? 'ab ' + new Date((r.sent_at + f.after_days * 86400) * 1000).toLocaleDateString('de-DE') : 'zählt ab der ersten Nachricht'),
+        el('button', { class: 'btn ghost', type: 'button', style: 'margin-left:auto', onclick: () => copy(f.message), text: 'Nur kopieren' })),
+      el('div', { class: 'text', text: f.message })))));
+  blocks.push(el('div', { class: 'actions', style: 'border-top:1px solid var(--line);padding-top:12px' },
+    ['awaiting_connection', 'expired', 'failed'].includes(r.status) ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/accepted', 'Nachricht wird vorbereitet'), text: 'Schon vernetzt' }) : null,
+    r.status === 'ready' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/sent', 'Als gesendet markiert'), text: 'Schon gesendet' }) : null,
+    !['replied', 'do_not_contact'].includes(r.status) ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/replied', 'Als beantwortet markiert'), text: 'Hat geantwortet' }) : null,
+    r.status === 'replied' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => act('/no-reply', 'Zurückgesetzt'), text: 'War keine Antwort' }) : null,
+    r.status !== 'do_not_contact' ? el('button', { class: 'btn ghost', type: 'button', onclick: () => confirm('Diese Person dauerhaft sperren? Sie wird dann nie wieder vorgeschlagen.') && act('/do-not-contact', 'Gesperrt'), text: 'Nicht kontaktieren' }) : null,
+    el('button', { class: 'btn danger', type: 'button', style: 'margin-left:auto', onclick: () => confirm('Kontakt löschen?') && act('', 'Gelöscht'), text: 'Löschen' })));
   return el('div', { class: 'panel' }, ...blocks);
 }
 
@@ -610,8 +1161,7 @@ $('cForm').addEventListener('submit', async (e) => {
     criteria: { source: 'search', keywords: list($('cKeywords').value), titles: list($('cTitles').value),
       locations: list($('cLocations').value), limit: +$('cLimit').value || 15,
       budget: { seconds: 900, max_turns: 60, max_cost_usd: +$('cCost').value || 0.5 } },
-    max_contacts: +$('cContacts').value || 10, auto_connect: $('cAutoConnect').checked,
-    allow_same_company: $('cSameCompany').checked };
+    max_contacts: +$('cContacts').value || 10, allow_same_company: $('cSameCompany').checked };
   if ($('cTemplate').value.trim()) body.template = $('cTemplate').value.trim();
   if ($('cNote').value.trim()) body.note_template = $('cNote').value.trim();
   try {
@@ -692,13 +1242,9 @@ async function loadRegistry() {
 }
 
 /* ------------------------------------------------------------------ start */
-async function statusDot() {
-  try { const s = await api('/api/v1/status'); $('dot').className = s.search.configured ? 'ok' : 'bad'; $('dot').title = s.search.configured ? 'Suche eingerichtet' : 'Suche nicht eingerichtet'; }
-  catch { $('dot').className = 'bad'; }
-}
-statusDot();
+refreshBanner();
 window.addEventListener('hashchange', () => show(location.hash.slice(1)));  // back button, #links
-show((location.hash || '#' + store.get('tab', 'overview')).slice(1));
+show((location.hash || '#' + store.get('tab', 'leads')).slice(1));
 setInterval(() => { if (!$('overview').hidden) loadOverview(); }, 30000);
 </script>
 </body>

@@ -70,6 +70,19 @@ class FakeInboxReader(FakeReader):
         return self.inboxes.pop(0), self.href
 
 
+class FakeListReader(FakeReader):
+    """Synthetic sent-invitations / newest-connections lists ([profile path, name] per card), one dict per look."""
+    def __init__(self, looks, href=None):
+        super().__init__([])
+        self.looks, self.href, self.list_reads = list(looks), href, []
+
+    def read_list(self, url):
+        self.list_reads.append(url)
+        people = self.looks[0].get(url, [])
+        if url == o.CONNECTIONS_URL or self.href: self.looks.pop(0)
+        return people, self.href or url
+
+
 class BlockedReader:
     """The browser hit a challenge/rate-limit page instead of content."""
     def __init__(self): self.reads = 0
@@ -77,6 +90,9 @@ class BlockedReader:
         self.reads += 1
         raise o.BrowserBlocked()
     def read_inbox(self):
+        self.reads += 1
+        raise o.BrowserBlocked()
+    def read_list(self, url):
         self.reads += 1
         raise o.BrowserBlocked()
 
@@ -128,9 +144,19 @@ class FlowTests(unittest.TestCase):
         self.addCleanup(self.hours.stop)
 
     def client(self, reader, connector=None):
+        if connector:  # the box sends requests itself only with OUTREACH_AUTO_CONNECT=1
+            auto = patch.object(o, 'AUTO_CONNECT', True)
+            auto.start(); self.addCleanup(auto.stop)
         app = create_app(Path(self.tmp.name) / 'data', start_worker=False, outreach_writer=self.writer,
                          outreach_reader=reader, outreach_connector=connector)
         return TestClient(app)
+
+    def age(self, service, ident, seconds=3600, **fields):
+        """Pretend the contact was created `seconds` ago (past the grace period before an invitation look)."""
+        stored = service.store.get(ident)[1]
+        connect = dict(stored['connect'])
+        if connect.get('opened_at'): connect['opened_at'] -= seconds
+        service.store.save({**stored, 'created_at': stored['created_at'] - seconds, 'connect': connect, **fields})
 
     def test_full_flow_connect_check_research_ready(self):
         reader = FakeReader([('Erika Musterfrau · 2.\nAusstehend', PROFILE), ('Erika Musterfrau · 1.\nNachricht', PROFILE)])
@@ -306,6 +332,11 @@ class FlowTests(unittest.TestCase):
             sent = self.sent_contact(client)
             replied = client.post('/api/v1/outreach/' + sent['id'] + '/replied').json()
             self.assertEqual((replied['status'], replied['reply']['source']), ('replied', 'manual'))
+            self.assertEqual([a['ref_id'] for a in client.get('/api/v1/actions', params={'kind': 'handle_reply'}).json()], [sent['id']])
+            handled = client.post('/api/v1/outreach/' + sent['id'] + '/reply-handled').json()
+            self.assertEqual(handled['status'], 'replied')
+            self.assertIsNotNone(handled['reply']['handled_at'])  # off the to-do list, still replied
+            self.assertEqual(client.get('/api/v1/actions', params={'kind': 'handle_reply'}).json(), [])
             undone = client.post('/api/v1/outreach/' + sent['id'] + '/no-reply').json()
             self.assertEqual((undone['status'], undone['reply']), ('sent', None))
             self.assertEqual(client.post('/api/v1/outreach/unknown/replied').status_code, 404)
@@ -505,6 +536,174 @@ class FlowTests(unittest.TestCase):
             retried = client.post('/api/v1/outreach/' + rec['id'] + '/connect').json()
             self.assertEqual(retried['connect']['state'], 'not_sent')
             self.assertEqual(connector.calls[-1][0], rec['linkedin_url'])
+
+    # -- manual connecting, followed through the sent-invitations list and the newest connections
+    def manual_contact(self, client, **kw):
+        # A lead from discovery: name and role are known, no note -> no paid call at all.
+        return client.post('/api/v1/outreach', json=request(name='Erika Musterfrau', headline='Partnerin',
+                                                            connection_note=False, **kw)).json()
+
+    def test_manual_connect_is_followed_through_sent_list_and_connections(self):
+        sent = [['/in/max-unbeteiligt-synthetic', 'Max Unbeteiligt'], ['/in/erika-musterfrau-synthetic', 'Erika Musterfrau']]
+        reader = FakeListReader([{o.SENT_URL: sent, o.CONNECTIONS_URL: [['/in/anna-alt-synthetic', 'Anna Alt']]},
+                                 {o.SENT_URL: [], o.CONNECTIONS_URL: [['/in/Erika-Musterfrau-Synthetic', 'Erika Musterfrau']]}])
+        with self.client(reader) as client:
+            service = client.app.state.outreach
+            rec = self.manual_contact(client)
+            self.assertEqual((rec['status'], rec['connect']['state'], rec['connection']['next_check_at'], rec['cost_usd']),
+                             ('awaiting_connection', 'manual', None, 0.0))  # no profile views scheduled, nothing paid
+            self.assertEqual((rec['name'], rec['headline']), ('Erika Musterfrau', 'Partnerin'))
+            self.assertEqual(FakeProviders.PROMPTS, [])
+            self.assertIsNone(service.invitation_check())  # just opened: the human may still be clicking "Vernetzen"
+            self.assertEqual(reader.list_reads, [])
+            self.age(service, rec['id'])
+            result = service.invitation_check()
+            self.assertEqual(result, {'checked': True, 'sent_listed': 2, 'connections_listed': 1, 'contacts_waiting': 1,
+                                      'pending': 1, 'connected': 0})
+            self.assertEqual(reader.list_reads, [o.SENT_URL, o.CONNECTIONS_URL])
+            pending = client.get('/api/v1/outreach/' + rec['id']).json()
+            self.assertEqual((pending['status'], pending['connection']['state'], pending['connect']['state']),
+                             ('awaiting_connection', 'pending', 'sent'))
+            self.assertIsNotNone(pending['connect']['sent_at'])
+            self.assertIsNone(service.invitation_check())  # next look only after INVITE_CHECK_HOURS
+            service.store.set_meta('next_invite_check', 0)
+            self.assertEqual(service.invitation_check()['connected'], 1)
+            self.assertEqual(client.get('/api/v1/outreach/' + rec['id']).json()['status'], 'connected')
+            self.assertTrue(service.research_one())
+            row = client.get('/api/v1/outreach/' + rec['id']).json()
+            self.assertEqual(row['status'], 'ready')
+            status = client.get('/api/v1/status').json()['outreach']
+            self.assertEqual((status['invite_reads_today'], status['invite_daily_cap']), (2, o.INVITE_DAILY_CAP))
+            self.assertIsNotNone(status['last_invite_check'])
+        raw = (Path(self.tmp.name) / 'data' / 'outreach.sqlite3').read_bytes()
+        for text in (b'Unbeteiligt', b'Anna Alt'):  # other people on the lists are never stored
+            with self.subTest(text=text): self.assertNotIn(text, raw)
+
+    def test_listed_contacts_by_profile_or_unique_name(self):
+        records = [{'id': 'a', 'name': 'Dr. Erika Musterfrau', 'linkedin_url': PROFILE},
+                   {'id': 'b', 'name': 'Paul Doppelt', 'linkedin_url': PROFILE + '-paul-1'},
+                   {'id': 'c', 'name': 'Paul Doppelt', 'linkedin_url': PROFILE + '-paul-2'},
+                   {'id': 'd', 'name': None, 'linkedin_url': 'https://www.linkedin.com/in/j%C3%BCrgen-synthetic'},
+                   {'id': 'e', 'name': 'Max Muster', 'linkedin_url': PROFILE + '-max'}]
+        people = [['/in/ACoAAB-opaque', 'Erika Musterfrau'], ['/in/other', 'Paul Doppelt'], ['/in/jürgen-synthetic', ''],
+                  ['/in/max-1', 'Max Muster'], ['/in/max-2', 'Max Muster'], 'kein Eintrag', [None, 'x']]
+        # a: unique name (opaque profile id); b/c: two contacts share the name; d: by URL; e: two cards share the name
+        self.assertEqual(o.listed_contacts(records, people), ['a', 'd'])
+        self.assertEqual(o.listed_contacts(records, []), [])
+
+    def test_invitation_look_absence_proves_nothing_and_late_acceptance_counts(self):
+        reader = FakeListReader([{o.SENT_URL: [['/in/erika-musterfrau-synthetic', 'Erika Musterfrau']]}, {}, {},
+                                 {o.CONNECTIONS_URL: [['/in/erika-musterfrau-synthetic', 'Erika Musterfrau']]}])
+        with self.client(reader) as client:
+            service = client.app.state.outreach
+            rec = self.manual_contact(client)
+            self.age(service, rec['id'])
+            service.invitation_check()
+            service.store.set_meta('next_invite_check', 0)
+            self.assertTrue(service.invitation_check()['checked'])  # empty lists (unrendered page?)
+            self.assertEqual(client.get('/api/v1/outreach/' + rec['id']).json()['connection']['state'], 'pending')
+            self.age(service, rec['id'], 40 * 86400)
+            service.store.set_meta('next_invite_check', 0)
+            service.invitation_check()
+            self.assertEqual(client.get('/api/v1/outreach/' + rec['id']).json()['status'], 'expired')
+            other = self.manual_contact(client, linkedin_url=PROFILE + '-2', allow_same_company=True)  # keeps looks running
+            self.age(service, other['id'])
+            service.invitation_check(manual=True)  # three looks today already: the daily cap would skip a scheduled one
+            self.assertEqual(client.get('/api/v1/outreach/' + rec['id']).json()['status'], 'connected')
+
+    def test_invitation_look_schedule_cap_hours_and_pauses(self):
+        looks = [{o.SENT_URL: [], o.CONNECTIONS_URL: []} for _ in range(4)]
+        reader = FakeListReader(looks)
+        with self.client(reader) as client:
+            service = client.app.state.outreach
+            self.assertIsNone(service.invitation_check(manual=True))  # nobody waits: no read at all
+            rec = self.manual_contact(client)
+            self.age(service, rec['id'])
+            with patch.object(o, 'within_active_hours', lambda now: False), patch.object(o, 'next_active_at', lambda now: now + 3600):
+                self.assertIsNone(service.invitation_check())
+            self.assertGreaterEqual(service.store.meta('next_invite_check'), time.time() + 3599)
+            service.store.set_meta('next_invite_check', 0)
+            with patch.object(o, 'INVITE_CHECK', False):
+                self.assertIsNone(service.invitation_check())  # OUTREACH_INVITE_CHECK=0
+            self.assertTrue(service.invitation_check()['checked'])
+            service.store.set_meta('next_invite_check', 0)
+            with patch.object(o, 'INVITE_DAILY_CAP', 1):
+                self.assertIsNone(service.invitation_check())  # restart-safe daily cap
+                self.assertTrue(service.invitation_check(manual=True)['checked'])  # a human may look anyway
+            self.assertEqual(len(reader.list_reads), 4)
+            service.pause(time.time(), 1)
+            self.assertIsNone(service.invitation_check(manual=True))  # never through a pause
+            self.assertEqual(len(reader.list_reads), 4)
+
+    def test_invitation_look_login_wall_and_block_pause(self):
+        reader = FakeListReader([{}], href='https://www.linkedin.com/authwall?trk=x')
+        with self.client(reader) as client:
+            service = client.app.state.outreach
+            self.age(service, self.manual_contact(client)['id'])
+            self.assertEqual(service.invitation_check(), {'checked': False, 'reason': 'login_required'})
+            self.assertEqual(reader.list_reads, [o.SENT_URL])  # stops at the wall, no second page
+            self.assertGreater(service.paused_until, time.time())
+            self.assertIsNone(service.store.meta('last_invite_check'))
+        blocked = BlockedReader()
+        with tempfile.TemporaryDirectory() as tmp, TestClient(create_app(Path(tmp) / 'data', start_worker=False,
+                                                                         outreach_writer=self.writer, outreach_reader=blocked)) as client:
+            service = client.app.state.outreach
+            self.age(service, self.manual_contact(client)['id'])
+            self.assertEqual(service.invitation_check(), {'checked': False, 'reason': 'blocked'})
+            self.assertGreaterEqual(service.paused_until, time.time() + o.BLOCK_PAUSE_HOURS * 3600 - 5)
+            self.assertEqual(blocked.reads, 1)
+
+    def test_sync_endpoint_and_action_for_an_invitation_never_seen(self):
+        reader = FakeListReader([{o.SENT_URL: [], o.CONNECTIONS_URL: []}])
+        with self.client(reader) as client:
+            service = client.app.state.outreach
+            self.assertEqual(client.post('/api/v1/outreach/sync-invitations').json(),
+                             {'checked': False, 'reason': 'nothing_waiting'})
+            rec = self.manual_contact(client, opened=True)  # the UI's "Vernetzen ↗": the human is on it right now
+            self.assertIsNotNone(rec['connect']['opened_at'])
+            self.assertEqual(client.get('/api/v1/actions', params={'kind': 'connect_manually'}).json(), [])
+            self.age(service, rec['id'])
+            synced = client.post('/api/v1/outreach/sync-invitations').json()
+            self.assertEqual((synced['checked'], synced['pending']), (True, 0))
+            actions = client.get('/api/v1/actions', params={'kind': 'connect_manually'}).json()
+            self.assertEqual([(a['ref_id'], a['actor']) for a in actions], [(rec['id'], 'human')])
+            self.assertIn('No invitation', actions[0]['why'])
+            self.assertEqual(client.get('/api/v1/actions', params={'kind': 'send_connection'}).json(), [])
+            # A contact an agent created: on the human's list at once, until the human opens the profile.
+            agent = self.manual_contact(client, linkedin_url=PROFILE + '-agent', allow_same_company=True)
+            self.assertIsNone(agent['connect']['opened_at'])
+            todo = {a['ref_id']: a['why'] for a in client.get('/api/v1/actions', params={'kind': 'connect_manually'}).json()}
+            self.assertIn('Not connected yet', todo[agent['id']])
+            self.assertIsNotNone(client.post('/api/v1/outreach/' + agent['id'] + '/opened').json()['connect']['opened_at'])
+            todo = [a['ref_id'] for a in client.get('/api/v1/actions', params={'kind': 'connect_manually'}).json()]
+            self.assertNotIn(agent['id'], todo)  # just opened: give the human time before the next look
+            service.pause(time.time(), 1)
+            self.assertEqual(client.post('/api/v1/outreach/sync-invitations').json(), {'checked': False, 'reason': 'paused'})
+
+    def test_invitation_seen_before_the_box_sent_it_is_not_sent_again(self):
+        connector = FakeConnector('sent')
+        reader = FakeListReader([{o.SENT_URL: [['/in/erika-musterfrau-synthetic', 'Erika Musterfrau']]}])
+        with self.client(reader, connector) as client:
+            service = client.app.state.outreach
+            service.connect_spacing = (0, 0)
+            rec = client.post('/api/v1/outreach', json=request()).json()
+            self.assertEqual(rec['connect']['state'], 'not_sent')
+            self.age(service, rec['id'])
+            with patch.object(o, 'within_active_hours', lambda now: True):
+                service.invitation_check()
+                self.assertFalse(service.connect_one())
+            self.assertEqual(connector.calls, [])
+            self.assertEqual(client.get('/api/v1/outreach/' + rec['id']).json()['connect']['state'], 'sent')
+
+    def test_invitations_calibration_reports_counts_only(self):
+        with self.client(FakeReader([])) as client:
+            self.manual_contact(client)
+        reader = FakeListReader([{o.SENT_URL: [['/in/erika-musterfrau-synthetic', 'Erika Musterfrau'], ['/in/max', 'Max Muster']],
+                                  o.CONNECTIONS_URL: [['/in/anna', 'Anna Alt']]}])
+        result = o.invitations_check(Path(self.tmp.name) / 'data', reader)
+        self.assertEqual(result, {'login_wall': False, 'sent_listed': 2, 'connections_listed': 1, 'contacts_waiting': 1,
+                                  'contacts_pending': 1, 'contacts_connected': 0})
+        self.assertNotIn('Erika', json.dumps(result))
 
     def test_reader_only_reads(self):
         source = Path(o.__file__).read_text(encoding='utf-8')

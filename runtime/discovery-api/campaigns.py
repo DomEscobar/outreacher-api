@@ -1,4 +1,5 @@
-"""Campaign engine: discovery -> registry-filtered outreach -> auto-connect -> acceptance -> research.
+"""Campaign engine: discovery -> registry-filtered outreach -> connect (by hand, or by the box with
+OUTREACH_AUTO_CONNECT=1) -> acceptance -> research.
 
 A campaign is the agent-facing "run this whole funnel" primitive. It owns one discovery job, then creates
 one outreach contact per qualified lead (paced by the existing outreach worker), and reports a funnel. It
@@ -16,7 +17,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from models import Criteria, Strict, Text
-from outreach import LongText, OutreachBudget, OutreachConflict, OutreachRequest, Topic
+from outreach import FollowUpTemplate, LongText, OutreachBudget, OutreachConflict, OutreachRequest, Topic
 from store import QueueFull
 
 CampaignStatus = Literal['queued', 'discovering', 'outreaching', 'awaiting_review', 'done', 'paused', 'failed',
@@ -28,8 +29,10 @@ FINAL = ('done', 'failed', 'cancelled')
 class CampaignRequest(Strict):
     name: Text | None = None
     criteria: Criteria
-    topic: Topic
+    topic: Topic | None = None  # required unless template_id provides it
     template: LongText | None = None
+    template_id: str | None = Field(default=None, max_length=64)  # a stored template: message, follow-ups and topic
+    followups: list[FollowUpTemplate] = Field(default_factory=list, max_length=5)
     note_template: LongText | None = None
     connection_note: bool = True
     note_max_chars: int = Field(default=200, ge=50, le=300)
@@ -43,6 +46,7 @@ class CampaignRequest(Strict):
     @model_validator(mode='after')
     def contacts(self):
         if self.max_contacts is None: self.max_contacts = self.criteria.limit
+        if not (self.topic or self.template_id): raise ValueError('topic or template_id required')
         return self
 
 
@@ -123,7 +127,11 @@ def outreach_request(settings, lead):
             'allow_same_company': settings.allow_same_company}
     if lead.get('company_website'): data['company_website'] = lead['company_website']
     if lead.get('company'): data['company_name'] = lead['company']
+    if lead.get('name'): data['name'] = lead['name']  # known from discovery: no search-index lookup
+    if lead.get('current_role'): data['headline'] = lead['current_role']
     if settings.template: data['template'] = settings.template
+    if settings.template_id: data['template_id'] = settings.template_id
+    if settings.followups: data['followups'] = [f.model_dump() for f in settings.followups]
     if settings.note_template: data['note_template'] = settings.note_template
     if settings.auto_connect is not None: data['auto_connect'] = settings.auto_connect
     if settings.budget is not None: data['budget'] = settings.budget.model_dump()
@@ -131,8 +139,9 @@ def outreach_request(settings, lead):
 
 
 class CampaignService:
-    def __init__(self, store, discovery_store, outreach, worker=None, start=True):
+    def __init__(self, store, discovery_store, outreach, worker=None, start=True, templates=None):
         self.store, self.discovery_store, self.outreach, self.worker = store, discovery_store, outreach, worker
+        self.templates = templates  # the search's leads carry the campaign's template
         self.stop, self.wake = threading.Event(), threading.Event()
         self.thread = threading.Thread(target=self.loop, name='campaign-worker', daemon=True)
         if start and os.environ.get('OUTREACH_BACKGROUND', '1') != '0': self.thread.start()
@@ -161,6 +170,8 @@ class CampaignService:
                 job_id = self.discovery_store.submit(criteria)
             except QueueFull:
                 return  # try again on the next tick
+            template_id = record['request'].get('template_id')
+            if self.templates and template_id: self.templates.assign(job_id, template_id)
             record.update(status='discovering', job_id=job_id)
             self.store.save(record)
             if self.worker: self.worker.wake.set()

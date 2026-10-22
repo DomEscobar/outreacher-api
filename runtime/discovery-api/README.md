@@ -186,26 +186,36 @@ outreach contacts are imported once at startup.
 
 ## Outreach — connect first, research and write after acceptance
 
-Implemented in `outreach.py` (bookkeeping/research) and `connect.py` (the one mutation: the connection
+Implemented in `outreach.py` (bookkeeping/research) and `connect.py` (the opt-in mutation: the connection
 request). Messages after acceptance are drafts; the box never sends them.
+
+**Default flow (manual connecting):** the UI start page „Heute“ shows what to do next (to-do cards for replies, ready messages, failed drafts and invitations not found; one „Nächster Lead“; a calm „Läuft von selbst“ summary; the browser tab title counts open to-dos). „Vernetzen ↗“ creates the contact (no paid call: name
+and role come from the lead) and opens the LinkedIn profile; you click „Vernetzen“ there yourself. About
+three times a day the box reads your sent invitations and your newest connections (see *Invitation look*
+below): `connection.state: pending` once the invitation is listed, `status: connected` once the person is
+among your newest connections, then research → `ready`. „Öffnen & kopieren“ copies the draft, opens the
+profile (click „Nachricht“, paste) and marks the contact `sent` (UI: „wartet auf Antwort“).
 
 ```json
 POST /api/v1/outreach
 {"linkedin_url": "https://www.linkedin.com/in/…", "company_website": "https://firma.de/",
+ "name": "Erika Musterfrau", "headline": "Partnerin",
  "topic": "KI-Automationen", "template": "Kurz, Sie-Form, ein konkreter Bezug, Frage nach 15-Minuten-Call",
-  "note_template": "optional guidance for the connection note", "connection_note": true,
-  "note_max_chars": 200, "message_max_chars": 1200, "language": "de", "auto_connect": true,
+  "note_template": "optional guidance for the connection note", "connection_note": false,
+  "note_max_chars": 200, "message_max_chars": 1200, "language": "de", "auto_connect": false,
   "budget": {"max_cost_usd": 0.15}}
 ```
 
 - `linkedin_url` (any LinkedIn host, canonicalised) and `company_website` or `company_name` are required.
   One contact per profile (`409 outreach_exists` with its id).
-- 201 → `status: awaiting_connection`, `name`/`headline` from the search index and an optional
-  `connection_note` (topic is context only, no pitch). With `auto_connect` (default
-  `OUTREACH_AUTO_CONNECT=1`) the background worker immediately sends the connection request with that
-  note; `connect.state` (`not_sent` → `sending` → `sent`/`failed`) reports it. With
-  `auto_connect: false` the state stays `manual` and the note is only a draft.
-- Connection requests (`connect.py`, the only module allowed to click): one profile at a time in a
+- 201 → `status: awaiting_connection`, `name`/`headline` (as given, else from the search index) and an
+  optional `connection_note` (topic is context only, no pitch). With `name` given and
+  `connection_note: false` nothing is looked up or written (cost 0). `connect.state` is `manual` unless
+  the box sends requests itself: `OUTREACH_AUTO_CONNECT=1` (default `0`) plus `auto_connect` (default =
+  that setting) → the background worker sends the request with the note; `connect.state`
+  (`not_sent` → `sending` → `sent`/`failed`) reports it. A request found under sent invitations sets
+  `connect.state: sent` either way, so the box never sends one you already sent.
+- Connection requests (`connect.py`, the only module allowed to click; only with `OUTREACH_AUTO_CONNECT=1`): one profile at a time in a
   background tab via CDP, "Vernetzen"/"Connect", optional "Notiz hinzufügen" + "Senden". Hard stops:
   daily cap `OUTREACH_CONNECT_DAILY_CAP`=15, weekly cap `OUTREACH_CONNECT_WEEKLY_CAP`=60, irregular
   spacing `OUTREACH_CONNECT_SPACING`=`90-240` s, a randomized `OUTREACH_CONNECT_DWELL`=`3-9` s on the
@@ -218,9 +228,30 @@ POST /api/v1/outreach
   rotation or rate-limit circumvention: the box stays within human-scale limits and stops honestly.
   `POST /api/v1/outreach/{id}/connect` retries a failed/manual request once; the rate/UI patterns are
   tested on synthetic pages only, so calibrate on a real profile before relying on it.
-- `awaiting_connection` is the workflow stage (connect first); the observed profile state is
-  `connection.state`, which stays `unknown` until the first check. `connect.state` says whether the box
-  sent the request.
+- `awaiting_connection` is the workflow stage (connect first); the observed state is
+  `connection.state`, which stays `unknown` until the invitation look (or a profile check) sees it.
+  `connect.state` says who sends the request and whether it was seen as sent.
+- Invitation look (`OUTREACH_INVITE_CHECK=1`, default on): while contacts are `awaiting_connection`,
+  about every `OUTREACH_INVITE_CHECK_HOURS`=4 (±jitter, inside `OUTREACH_ACTIVE_HOURS`) and at most
+  `OUTREACH_INVITE_DAILY_CAP`=3 times per local calendar day, the box opens
+  `https://www.linkedin.com/mynetwork/invitation-manager/sent/` and then
+  `https://www.linkedin.com/mynetwork/invite-connect/connections/` (newest first) in background tabs of
+  the shared Chromium (same CDP calls as the profile check: no clicks, no typing, no scrolling) and reads
+  the profile links of up to 200 cards per page. A card counts only when it holds exactly one profile and
+  a „Zurückziehen“/„Withdraw“ (sent) or „Nachricht“/„Message“ (connections) button, so suggestion boxes on
+  the same page never count. A contact matches by profile URL, otherwise by a first+last name that is
+  unique among contacts and cards. Listed under sent → `connection.state: pending`, `connect.state: sent`;
+  among the newest connections → `status: connected` (also for `expired` contacts: a late acceptance
+  counts), research starts. Not being listed proves nothing (the list may be cut off or not rendered):
+  the contact stays as it is. A look starts only when a contact has waited 20 min (time to actually click
+  „Vernetzen“). Contacts sent by hand get no routine profile views (`connection.next_check_at: null`);
+  with `OUTREACH_INVITE_CHECK=0` they fall back to the profile check below. After
+  `OUTREACH_EXPIRE_DAYS`=30 without acceptance → `expired`. Login wall / challenge pause everything as
+  below. The lists (other people's names) stay in memory for that look and are never stored or returned.
+- `POST /api/v1/outreach/sync-invitations` runs one look now (UI: „Jetzt nachschauen“): ignores the
+  schedule, window and daily cap, never a pause. Returns counts only: `{checked, sent_listed,
+  connections_listed, contacts_waiting, pending, connected}`, or `{checked: false, reason}` with
+  `nothing_waiting|paused|login_required|blocked|unreadable`.
 - `POST /api/v1/outreach/{id}/check-connection` checks the profile status now, read-only: one look at the
   public profile, nothing sent/connected/messaged. It ignores the schedule and the daily cap (a deliberate
   user action), uses the shared browser lock, and on a login wall pauses background checks and reports
@@ -228,7 +259,8 @@ POST /api/v1/outreach
   question is settled). The UI exposes it as the "Profilstatus prüfen" button in the contact's Verbindung
   panel, with each state labelled: `not_connected` (no request visible), `pending` (request outstanding),
   `connected` (already connected), `unknown` (not yet checked / not readable), `login_required`.
-- Background check (`OUTREACH_CHECK_HOURS`=24, `OUTREACH_DAILY_CHECKS`=10,
+- Background profile check, only for requests sent by the box (or for every contact with
+  `OUTREACH_INVITE_CHECK=0`) (`OUTREACH_CHECK_HOURS`=24, `OUTREACH_DAILY_CHECKS`=10,
   `OUTREACH_PROFILE_SPACING`=`120-300` seconds between views; the whole
   loop is off when `OUTREACH_BACKGROUND=0`, and `check-connection` is then the only way to update the state):
   the profile is opened in a background tab of the shared Chromium via CDP, only the top card text
@@ -266,12 +298,22 @@ POST /api/v1/outreach
   challenge/rate-limit page (`OUTREACH_BLOCK_PAUSE_HOURS`=12) for 12 h; both are persisted across
   restarts and cleared by `POST /api/v1/outreach/resume` after a human logs in via noVNC. Nothing tries
   to get around a wall. `OUTREACH_REPLY_CHECK=0` turns the check off.
+- Templates ("Vorlagen", `/api/v1/templates` CRUD, UI: „Vorlagen“): `{name, topic?, message, followups: [{after_days, message}], is_default}`. In `message` and follow-ups, `{{name}}`, `{{vorname}}`, `{{nachname}}`, `{{firma}}`, `{{rolle}}`, `{{website}}` come from the contact; any other `{{…}}` is an instruction for the model (e.g. `{{Eisbrecher mit Bezug zur Firma, 1–2 Sätze}}`), which writes only that field from the firm website (findings as usual); everything else stays word for word (stray markers are stripped, a field left empty sets `error: field_missing`). A template of variables only costs nothing. Without placeholders `template` stays free guidance as before. A search gets a template with `POST /api/v1/discoveries?template_id=…` (a "campaign" = search + template); its leads carry `template_id`, and `POST /api/v1/outreach` with `template_id` copies the template into the contact (later edits of the template do not change existing drafts). One template is always the default.
+- Follow-ups: after the human copied the message (`status: sent`), follow-up *n* is due `after_days` after `sent_at` while no answer came, in order; `POST /api/v1/outreach/{id}/followups/{n}/sent` records that it was copied into LinkedIn (`409` out of order or after a reply), `PATCH` with `followup_index` + `followup_message` edits one. `/api/v1/actions` lists due ones as `send_followup`; a reply stops them.
+- `POST /api/v1/outreach/{id}/reply-handled` takes an answer off the to-do list after you replied (`reply.handled_at`, status stays `replied`).
 - `POST /api/v1/outreach/{id}/replied` marks an answer by hand; `POST /api/v1/outreach/{id}/no-reply`
   undoes a wrong one (back to the previous status). Known false positive: an older conversation with that
   person where they wrote last. `/api/v1/status` reports `reply_check_enabled`, `last_inbox_check`,
-  `next_inbox_check`, `inbox_reads_today`, `paused_until`, `connect_enabled`, `connect_last_24h` and
-  `connect_daily_cap`.
-- Calibrate once on the real page after logging in:
+  `next_inbox_check`, `inbox_reads_today`, `invite_check_enabled`, `last_invite_check` (last complete
+  look), `next_invite_check`, `invite_reads_today`, `invite_daily_cap`, `paused_until`,
+  `connect_enabled`, `connect_last_24h` and `connect_daily_cap`.
+- Calibrate the invitation look once after logging in:
+  `docker compose exec session python3 /opt/browser-box/discovery-api/outreach.py invitations-check` prints
+  counts only (`sent_listed`, `connections_listed`, `contacts_waiting`, `contacts_pending`,
+  `contacts_connected`, `login_wall`) and changes nothing. If `sent_listed` is 0 while you have pending
+  invitations, LinkedIn's markup differs from the expected cards and nothing is detected until it is
+  adapted. The card handling was tested on a synthetic page in headless Chromium, not on LinkedIn.
+- Calibrate the reply check once on the real page after logging in:
   `docker compose exec session python3 /opt/browser-box/discovery-api/outreach.py inbox-check` prints counts
   only (rows read, conversations, last message ours/theirs, contacts waiting, contacts with a reply) and
   changes nothing. If `rows_read` is 0 while the inbox has conversations, LinkedIn's markup differs from
@@ -289,7 +331,8 @@ These endpoints are built for an external agent (or the UI) to act proactively w
 All of them carry ids/statuses only; names, URLs and message text stay in the existing records.
 
 **Actions** — `GET /api/v1/actions?kind=&limit=`
-An ordered next-best-action list: `fix_session` (paused browser), `send_connection` (failed/manual),
+An ordered next-best-action list: `fix_session` (paused browser), `send_connection` (failed),
+`connect_manually` (human: a look at sent invitations after creation did not list it),
 `check_acceptance` (due), `retry_research` (failed), `review_message` (ready draft), `handle_reply`,
 `review_expired`, `review_job`, `review_campaign`. Each item has `priority`, `why`, `actor`
 (`agent` may call the endpoint, `human` must decide/send) and `suggested_call`. The list never triggers

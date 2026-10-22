@@ -63,6 +63,10 @@ prints the VPS IP, the whitelist or the endpoint is wrong; fix it, do not procee
 ## Documented behaviours
 
 - Agent API contract: [`runtime/discovery-api/AGENT-GUIDE.md`](runtime/discovery-api/AGENT-GUIDE.md)
+- Skill for an external Hermes agent that steers the box over the API:
+  [`operator-skills/outreacher/SKILL.md`](operator-skills/outreacher/SKILL.md) (copy to
+  `~/.hermes/skills/outreacher/`; env `OUTREACHER_URL`, `OUTREACHER_USER`, `OUTREACHER_PASSWORD`).
+  Deliberately outside `skills/`, which is mounted into the box's own discovery agent.
 - Agent primitives: `GET /api/v1/actions`, `GET /api/v1/events`, `POST /api/v1/campaigns`,
   `POST /api/v1/webhooks`, `PATCH /api/v1/outreach/{id}` (see the guide, section 6)
 - API and operating limits: [`runtime/discovery-api/README.md`](runtime/discovery-api/README.md)
